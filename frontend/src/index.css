@@ -1,0 +1,26 @@
+:root {
+  --bs-primary: #2563EB; /* primary-600 */
+  --bs-secondary: #6B21A8; /* purple-800 */
+  --bs-success: #10B981;
+  --bs-danger: #EF4444;
+  --bs-warning: #F59E0B;
+  --bs-font-sans-serif: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
