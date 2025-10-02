@@ -1,2 +1,4 @@
 hostel_env/        
 .env
+#Node
+node_modules/
