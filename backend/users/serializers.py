@@ -1,11 +1,15 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from hostels.models import Hostel
+
 
 User = get_user_model()
 
+# ==========================
 # JWT Serializer for email login
+# ==========================
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,7 +51,9 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 
+# ==========================
 # Registration Serializer
+# ==========================
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
@@ -63,8 +69,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('first_name','last_name','username', 'email', 'password', 'password2',
-                  'gender', 'role', 'phone', 'city')
+        fields = (
+            'first_name', 'last_name', 'username', 'email',
+            'password', 'password2', 'gender', 'role', 'phone', 'city'
+        )
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -77,8 +85,52 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+# ==========================
 # Simple User Serializer (for profile)
+# ==========================
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         exclude = ('password', 'groups', 'user_permissions')
+
+
+# ==========================
+# Hostel Serializer
+# ==========================
+class HostelSerializer(serializers.ModelSerializer):
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hostel
+        fields = ['id', 'name', 'description', 'location', 'latitude', 'longitude']
+
+    def get_latitude(self, obj):
+        try:
+            lat, lng = map(float, obj.location.split(","))
+            return lat
+        except Exception:
+            return None
+
+    def get_longitude(self, obj):
+        try:
+            lat, lng = map(float, obj.location.split(","))
+            return lng
+        except Exception:
+            return None
+
+    def create(self, validated_data):
+        # if latitude & longitude provided separately, build location
+        lat = self.initial_data.get("latitude")
+        lng = self.initial_data.get("longitude")
+        if lat and lng:
+            validated_data["location"] = f"{lat},{lng}"
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # allow update with latitude & longitude separately
+        lat = self.initial_data.get("latitude")
+        lng = self.initial_data.get("longitude")
+        if lat and lng:
+            validated_data["location"] = f"{lat},{lng}"
+        return super().update(instance, validated_data)
