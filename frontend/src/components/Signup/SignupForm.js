@@ -218,18 +218,6 @@ const SignupForm = ({ onSubmit, loading = false }) => {
             />
             <label className="form-check-label" htmlFor="owner">Owner</label>
           </div>
-          <div className="form-check form-check-inline">
-            <input
-              className="form-check-input"
-              type="radio"
-              name="role"
-              id="admin"
-              value="admin"
-              checked={formData.role === "admin"}
-              onChange={handleChange}
-            />
-            <label className="form-check-label" htmlFor="admin">Admin</label>
-          </div>
         </div>
       </div>
 
