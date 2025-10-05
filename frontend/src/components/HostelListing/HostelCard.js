@@ -1,146 +1,141 @@
 import React, { useState } from 'react';
+import { FaHeart, FaRegHeart, FaStar, FaStarHalfAlt, FaRegStar,FaMapMarkerAlt } from 'react-icons/fa';
 
 const HostelCard = ({ hostel, onFavoriteToggle }) => {
   const [isFavorited, setIsFavorited] = useState(hostel.isFavorited || false);
   const [loading, setLoading] = useState(false);
 
-  // ----- Favorite Toggle Handler -----
   const handleFavoriteToggle = async () => {
+    if (loading) return;
+
+    const previous = isFavorited;
+    setIsFavorited(!previous);
     setLoading(true);
+
     try {
       const response = await fetch(`/api/hostels/${hostel.id}/favorite/`, {
-        method: isFavorited ? 'DELETE' : 'POST',
+        method: previous ? 'DELETE' : 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
-        setIsFavorited(!isFavorited);
-        onFavoriteToggle && onFavoriteToggle(hostel.id, !isFavorited);
+        setIsFavorited(previous);
+        console.error('Failed to toggle favorite.');
+      } else {
+        onFavoriteToggle && onFavoriteToggle(hostel.id, !previous);
       }
     } catch (error) {
+      setIsFavorited(previous);
       console.error('Error toggling favorite:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // ----- Render Rating Stars -----
   const renderStars = (rating = 0) => {
     const stars = [];
     const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
+    const halfStar = rating % 1 !== 0;
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<i key={i} className="fas fa-star text-warning"></i>);
+      stars.push(<FaStar key={`full-${i}`} className="text-warning me-1" />);
     }
-    if (hasHalfStar) {
-      stars.push(<i key="half" className="fas fa-star-half-alt text-warning"></i>);
+    if (halfStar) {
+      stars.push(<FaStarHalfAlt key="half" className="text-warning me-1" />);
     }
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<i key={`empty-${i}`} className="far fa-star text-warning"></i>);
+    const totalRendered = fullStars + (halfStar ? 1 : 0);
+    for (let i = totalRendered; i < 5; i++) {
+      stars.push(<FaRegStar key={`empty-${i}`} className="text-warning me-1" />);
     }
     return stars;
   };
 
   return (
-    <div className="col-12 mb-4">
-      <div className="card hostel-card shadow-sm hover-shadow transition">
-        <div className="position-relative">
+    <div className="card shadow-sm border-0 h-100">
+      <div className="position-relative">
+        <img
+          src={hostel.images?.[0] || '/placeholder-hostel.jpg'}
+          alt={hostel.name}
+          className="card-img-top"
+          style={{ height: '200px', objectFit: 'cover' }}
+        />
 
-          {/*Placeholder image*/}
-          <img
-            src={hostel.images?.[0] || '/placeholder-hostel.jpg'}
-            className="card-img-top"
-            alt={hostel.name}
-            style={{ height: '200px', objectFit: 'cover' }}
-          />
+        {/* Favorite Button */}
+        <button
+          type="button"
+          className="position-absolute top-0 end-0 m-2 d-flex align-items-center justify-content-center rounded-circle bg-white border shadow-sm"
+          onClick={handleFavoriteToggle}
+          disabled={loading}
+          aria-pressed={isFavorited}
+          aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          style={{ width: 36, height: 36 }}
+        >
+          {isFavorited ? (
+          <FaHeart className="text-danger" style={{ fontSize: '1.0rem' }} />
+          ) : (
+            <FaRegHeart className="text-muted" style={{ fontSize: '1.0rem' }} />
+          )}
+        </button>
 
-          {/*Favorite Button*/}
-          <button
-            className={`btn btn-sm position-absolute top-0 end-0 m-2 ${
-              isFavorited ? 'btn-danger' : 'btn-outline-light'
-            }`}
-            onClick={handleFavoriteToggle}
-            disabled={loading}
-          >
-            <i className={`${isFavorited ? 'fas' : 'far'} fa-heart`}></i>
-          </button>
+        {/* Discount Badge */}
+        {hostel.discount && (
+          <span className="badge bg-success position-absolute top-0 start-0 m-2">
+            {hostel.discount}% OFF
+          </span>
+        )}
+      </div>
 
-          {/*Discount Badge*/}
-          {hostel.discount && (
-            <span className="badge bg-success position-absolute top-0 start-0 m-2">
-              {hostel.discount}% OFF
-            </span>
+      <div className="card-body d-flex flex-column">
+        <div className="d-flex justify-content-between mb-2">
+          <h5 className="card-title fw-semibold mb-0 text-truncate">
+            {hostel.name || 'Unknown Hostel'}
+          </h5>
+          <div className="text-end">
+            <div className="d-flex align-items-center">
+              {renderStars(hostel.rating || 0)}
+              <span className="ms-1 small text-muted">({hostel.reviewCount || 0})</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-muted small mb-2">
+          <i className="fas fa-map-marker-alt me-1"></i>
+          {hostel.location || 'Location not available'}
+        </p>
+
+        <div className="mb-3">
+          {(hostel.amenities || []).slice(0, 3).map((a, i) => (
+            <span key={i} className="badge bg-light text-dark me-1 mb-1">{a}</span>
+          ))}
+          {hostel.amenities?.length > 3 && (
+            <span className="text-muted small">+{hostel.amenities.length - 3} more</span>
           )}
         </div>
 
-        <div className="card-body d-flex flex-column">
-
-          {/* Title + Rating */}
-          <div className="d-flex justify-content-between align-items-start mb-2">
-            <h5 className="card-title fw-semibold mb-0 flex-grow-1">{hostel.name || 'Unknown Hostel'}{/*Fallback name */}</h5>
-            <div className="text-end">
-              <div className="d-flex align-items-center mb-1">
-                {renderStars(hostel.rating || 0)} {/* Default rating*/}
-                <span className="ms-1 text-muted small">({hostel.reviewCount || 0 }) {/*Default reviews*/}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Location */}
-          <p className="text-muted small mb-2">
-            <i className="fas fa-map-marker-alt me-1"></i>
-            {hostel.location}
-          </p>
-
-          {/* Amenities*/}
-          <div className="amenities mb-3 text-wrap">
-            {hostel.amenities?.slice(0, 3).map((amenity, index) => (
-              <span key={index} className="badge bg-light text-dark me-1 mb-1">
-                {amenity}
-              </span>
-            ))}
-            {hostel.amenities?.length > 3 && (
-              <span className="text-muted small">+{hostel.amenities.length - 3} more</span>
-            )}
-          </div>
-
-          {/* Pricing + Availability */}
-          <div className="mt-auto">
-            <div className="d-flex justify-content-between align-items-center mb-2">
+        <div className="mt-auto">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <small className="text-muted">From</small>
               <div>
-                <span className="text-muted small">From</span>
-                <div className="d-flex align-items-baseline">
-                  {hostel.originalPrice && hostel.originalPrice > hostel.price && (
-                    <span className="text-muted text-decoration-line-through me-1">
-                      {hostel.originalPrice}
-                    </span>
-                  )}
-                  <span className="h5 fw-bold text-primary mb-0">{hostel.price || 0} {/* Default price */}</span>
-                  <span className="text-muted small"></span>
-                </div>
-              </div>
-              <div className="text-end">
-                <div className="text-success small fw-medium">
-                  {hostel.availability || 'Available'} {/* Default availability */}
-                </div>
+                {hostel.originalPrice && hostel.originalPrice > hostel.price && (
+                  <span className="text-decoration-line-through text-muted me-1">
+                    {hostel.originalPrice}
+                  </span>
+                )}
+                <span className="fw-bold text-primary">{hostel.price || 0}</span>
               </div>
             </div>
-
-            {/* CTA Button */}
-            <div className="d-grid gap-2">
-              <a
-                href={`/hostels/${hostel.id}`}
-                className="btn btn-primary"
-              >
-                View Details
-              </a>
-            </div>
+            <small className="text-success fw-medium">
+              {hostel.availability || 'Available'}
+            </small>
           </div>
+
+          <a href={`/hostels/${hostel.id}`} className="btn btn-primary w-100 fw-semibold">
+            View Details
+          </a>
         </div>
       </div>
     </div>
