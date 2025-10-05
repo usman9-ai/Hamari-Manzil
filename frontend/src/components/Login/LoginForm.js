@@ -49,6 +49,7 @@ const LoginForm = ({ onSubmit, loading = false }) => {
         </div>
       )}
       
+      {/*email*/}
       <div className="mb-3">
         <label htmlFor="email" className="form-label fw-medium">Email</label>
         <input
@@ -64,6 +65,7 @@ const LoginForm = ({ onSubmit, loading = false }) => {
         {errors.email && <div className="invalid-feedback">{errors.email}</div>}
       </div>
 
+      {/*password*/}
       <div className="mb-3">
         <label htmlFor="password" className="form-label fw-medium">Password</label>
         <input
