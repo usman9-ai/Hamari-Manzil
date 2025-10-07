@@ -1,5 +1,4 @@
 import React from 'react';
-import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
 
 // FooterNav component: Displays footer with brand info, quick links, and social icons
 const FooterNav = () => {
@@ -41,10 +40,10 @@ const FooterNav = () => {
           <div className="col-12 text-center">
             <h6 className="fw-bold mb-2">Follow Us</h6>
             <div className="d-flex justify-content-center justify-content-md-start gap-3 mt-2">
-              <a href="#" className="text-primary fs-5 hover-icon"><FaFacebookF /></a>
-              <a href="#" className="text-primary fs-5 hover-icon"><FaInstagram /></a>
-              <a href="#" className="text-primary fs-5 hover-icon"><FaTwitter /></a>
-              <a href="#" className="text-primary fs-5 hover-icon"><FaLinkedinIn /></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-facebook-f"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-instagram"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-twitter"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-linkedin-in"></i></a>
             </div>
           </div>
 

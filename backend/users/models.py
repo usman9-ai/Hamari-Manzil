@@ -25,6 +25,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student',  blank=False, null=False)
     phone = models.CharField(max_length=15,  blank=False, null=False)
     city = models.CharField(max_length=50,  blank=False, null=False)
+    verification_status = models.BooleanField(default=False)
 
     # Override inherited ManyToManyFields to avoid reverse accessor conflicts
     groups = models.ManyToManyField(

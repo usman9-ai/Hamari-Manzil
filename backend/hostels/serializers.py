@@ -65,6 +65,30 @@ class RoomDetailSerializer(serializers.ModelSerializer):
             return []
         return [FACILITY_DICT.get(f, f) for f in obj.facilities]
 
+class RoomUpdateSerializer(serializers.ModelSerializer):
+    # facilities_display = serializers.SerializerMethodField()
+    # hostel_name = serializers.CharField(source="hostel.name", read_only=True)
+
+    class Meta:
+        model = Room
+        fields = [
+                    # اگر room title ہے
+            "description",          # اگر description ہے
+            "total_capacity",
+            "available_capacity",
+            "rent",
+            "security_deposit",
+            "facilities",           # اصل stored facilities
+       # readable facilities
+            "media",
+            "room_type",
+            "is_available",
+        ]
+
+    def get_facilities_display(self, obj):
+        if not obj.facilities:
+            return []
+        return [FACILITY_DICT.get(f, f) for f in obj.facilities]
 
 
 # -----------------------------

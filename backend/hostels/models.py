@@ -34,6 +34,7 @@ class Hostel(models.Model):
 class Hostel(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role':'owner'})
     name = models.CharField(max_length=100, blank=False, null=False)
+    media  = models.JSONField(blank=True, null=True)  # To store images/videos as a list of URLs
     city = models.CharField(max_length=10, choices= CITY_CHOICES, default='lahore', blank=False, null=False)
     longitude = models.FloatField(blank=False, null=False)
     latitude = models.FloatField(blank=False, null=False)
@@ -41,6 +42,7 @@ class Hostel(models.Model):
     gender = models.CharField(max_length=10, choices= GENDER_CHOICES, default='male', blank=False, null=False)
     total_rooms = models.IntegerField( blank=False, null=False)
     description = models.TextField(blank=True, null=True)
+    verification_status = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Room(models.Model):
@@ -54,4 +56,5 @@ class Room(models.Model):
     facilities = models.JSONField(blank=True, null=True)  # To store room facilities as a list of strings
     description = models.TextField(blank=True, null=True)
     is_available = models.BooleanField(default=True)  
+    verification_status = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
