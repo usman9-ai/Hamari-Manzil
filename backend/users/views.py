@@ -10,6 +10,8 @@ from django.urls import reverse
 from django.http import JsonResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
+from rest_framework import generics
+from .serializers import ForgotPasswordSerializer, ResetPasswordSerializer
 
 User = get_user_model()
 
@@ -170,3 +172,24 @@ class MyTokenObtainPairView(TokenObtainPairView):
             request.data['email'] = request.data['username']
             
         return super().post(request, *args, **kwargs)
+    
+
+
+
+
+
+class ForgotPasswordView(generics.GenericAPIView):
+    serializer_class = ForgotPasswordSerializer
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password reset email sent!"})
+
+class ResetPasswordView(generics.GenericAPIView):
+    serializer_class = ResetPasswordSerializer
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password reset successful!"})
