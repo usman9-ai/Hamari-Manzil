@@ -1,12 +1,11 @@
 import React from 'react';
-import { FaMoneyBillWave, FaStar, FaRocket } from 'react-icons/fa';
 
 const ValueAndTestimonials = () => {
   // ----- Benefits / Value Section -----
   const benefits = [
-    { icon: <FaMoneyBillWave size={30} color="#4F46E5"/>, title: 'Affordable', desc: 'Best prices for students.' },
-    { icon: <FaStar size={30} color="#4F46E5"/>, title: 'Trusted Reviews', desc: 'Verified ratings from real users.' },
-    { icon: <FaRocket size={30} color="#4F46E5"/>, title: 'Easy & Fast', desc: 'Quick search and booking process.' },
+    { icon: <i className="fas fa-money-bill-wave text-primary fa-2x"></i>, title: 'Affordable', desc: 'Best prices for students.' },
+    { icon: <i className="fas fa-star text-primary fa-2x"></i>, title: 'Trusted Reviews', desc: 'Verified ratings from real users.' },
+    { icon: <i className="fas fa-rocket text-primary fa-2x"></i>, title: 'Easy & Fast', desc: 'Quick search and booking process.' },
   ];
 
   // ----- Testimonials Section -----
@@ -40,12 +39,12 @@ const ValueAndTestimonials = () => {
           <div key={index} className="col-12 col-md-4">
             <div className="card shadow-sm p-3 h-100">
               <div className="d-flex align-items-center mb-2">
-                <img 
-                  src={t.avatar} 
-                  alt={t.name} 
-                  className="rounded-circle me-3" 
-                  width={50} 
-                  height={50} 
+                <img
+                  src={t.avatar}
+                  alt={t.name}
+                  className="rounded-circle me-3"
+                  width={50}
+                  height={50}
                 />
                 <h6 className="mb-0">{t.name}</h6>
               </div>

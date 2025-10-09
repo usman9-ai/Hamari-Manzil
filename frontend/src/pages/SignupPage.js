@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SignupHeader from '../components/Signup/SignupHeader';
 import SignupForm from '../components/Signup/SignupForm';
 import SignupFooter from '../components/Signup/SignupFooter';
 
 const SignupPage = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignupSuccess = (data) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    window.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   const handleSignupSubmit = (data) => {
     setLoading(true);
-    
+
     // SignupForm handles the API call
     setTimeout(() => {
       setLoading(false);
