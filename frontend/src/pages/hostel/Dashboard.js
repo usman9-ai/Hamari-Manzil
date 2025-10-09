@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDashboardStats, getHostels } from '../../actions/hostelActions';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import IntroTour from '../../components/IntroTour';
 
 const Dashboard = () => {
     const [stats, setStats] = useState(null);
@@ -57,9 +58,11 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="container-fluid py-4">
-            {/* Page Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+        <>
+            <IntroTour />
+            <div className="container-fluid py-4">
+                {/* Page Header */}
+                <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="h3 fw-bold mb-1">Dashboard</h1>
                     <p className="text-muted">Welcome back! Here's what's happening with your hostels.</p>
@@ -373,7 +376,8 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 };
 

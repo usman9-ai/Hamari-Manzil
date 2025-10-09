@@ -381,23 +381,25 @@ const LocationPickerModal = ({
                         </div>
 
                         <div className="modal-footer">
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={onHide}
-                            >
-                                <i className="fas fa-times me-2"></i>
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleConfirm}
-                                disabled={!location.lat || !location.lng}
-                            >
-                                <i className="fas fa-check me-2"></i>
-                                Confirm Location
-                            </button>
+                            <div className='d-flex justify-content-end gap-2 mt-4'>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={onHide}
+                                >
+                                    <i className="fas fa-times me-2"></i>
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={handleConfirm}
+                                    disabled={!location.lat || !location.lng}
+                                >
+                                    <i className="fas fa-check me-2"></i>
+                                    Confirm Location
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

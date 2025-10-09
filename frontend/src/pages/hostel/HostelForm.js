@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { hostelFacilitiesOptions } from '../../services/hostelDummyData';
 import LocationPickerModal from '../../components/hostel/LocationPickerModal';
+import { useNavigate } from 'react-router-dom';
 
 const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         city: '',
@@ -19,11 +21,14 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
         mapLocation: '',
         images: [],
         videoUrl: '',
+        verified: false, // Reset verification on create/location change
         ...hostel
     });
 
     const [uploadingImage, setUploadingImage] = useState(false);
     const [showLocationModal, setShowLocationModal] = useState(false);
+    const [locationChanged, setLocationChanged] = useState(false);
+    const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
     useEffect(() => {
         // Load Cloudinary upload widget script
@@ -107,18 +112,44 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
     };
 
     const handleLocationSelect = (locationData) => {
+        const oldLat = formData.latitude;
+        const oldLng = formData.longitude;
+        const newLat = locationData.latitude;
+        const newLng = locationData.longitude;
+
+        // Check if location changed significantly (more than 0.001 degrees ~100m)
+        const hasChanged = hostel && (
+            Math.abs(oldLat - newLat) > 0.001 ||
+            Math.abs(oldLng - newLng) > 0.001
+        );
+
         setFormData(prev => ({
             ...prev,
             address: locationData.address,
             latitude: locationData.latitude,
             longitude: locationData.longitude,
-            mapLocation: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`
+            mapLocation: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`,
+            verified: hasChanged ? false : prev.verified // Reset verification if location changed
         }));
+
+        if (hasChanged) {
+            setLocationChanged(true);
+        }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSubmit(formData);
+
+        // Submit the form
+        await onSubmit({
+            ...formData,
+            verified: hostel ? (locationChanged ? false : formData.verified) : false
+        });
+
+        // Show verification prompt for new hostels or if location changed
+        if (!hostel || locationChanged) {
+            setShowVerificationPrompt(true);
+        }
     };
 
     return (
@@ -335,7 +366,6 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                 </div>
 
                 <div className="col-12">
-                    <label className="form-label">Images</label>
                     <button
                         type="button"
                         className="btn btn-outline-primary"
@@ -343,7 +373,7 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                         disabled={uploadingImage}
                     >
                         <i className="fas fa-cloud-upload-alt me-2"></i>
-                        {uploadingImage ? 'Uploading...' : 'Upload Images via Cloudinary'}
+                        {uploadingImage ? 'Uploading...' : 'Upload Images'}
                     </button>
                     <small className="text-muted d-block mt-1">
                         You can upload multiple images. Click to open Cloudinary widget.
@@ -427,6 +457,54 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                     lng: parseFloat(formData.longitude) || null
                 }}
             />
+
+            {/* Verification Prompt Modal */}
+            {showVerificationPrompt && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header border-0 pb-0">
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowVerificationPrompt(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body text-center py-4">
+                                <div className="mb-3">
+                                    <i className="fas fa-certificate fa-3x text-warning"></i>
+                                </div>
+                                <h5 className="fw-bold mb-2">Get Your Hostel Verified!</h5>
+                                <p className="text-muted mb-4">
+                                    {locationChanged
+                                        ? 'Your location has been updated. To maintain trust with students, please submit a new verification request.'
+                                        : 'Build trust with students by getting your hostel verified. Verified hostels get 3x more bookings!'}
+                                </p>
+                                <div className="d-flex gap-2 justify-content-center">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowVerificationPrompt(false)}
+                                    >
+                                        Maybe Later
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                            setShowVerificationPrompt(false);
+                                            navigate('/hostel/verification');
+                                        }}
+                                    >
+                                        <i className="fas fa-certificate me-2"></i>
+                                        Request Verification
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </form>
     );
 };

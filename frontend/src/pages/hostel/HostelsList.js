@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getHostels, deleteHostel, createHostel, updateHostel, toggleHostelStatus } from '../../actions/hostelActions';
+import { getHostels, getRooms, deleteHostel, createHostel, updateHostel, toggleHostelStatus, getVerificationRequests, submitVerificationRequest } from '../../actions/hostelActions';
 import { hostelFacilitiesOptions } from '../../services/hostelDummyData';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -15,6 +15,7 @@ const HostelsList = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingHostel, setEditingHostel] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [verificationRequests, setVerificationRequests] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -23,19 +24,48 @@ const HostelsList = () => {
 
     const loadHostels = async () => {
         setLoading(true);
-        const result = await getHostels();
-        if (result.success) {
-            setHostels(result.data);
+        const [hostelsResult, verificationsResult] = await Promise.all([
+            getHostels(),
+            getVerificationRequests()
+        ]);
+        
+        if (hostelsResult.success) {
+            setHostels(hostelsResult.data);
+        }
+        if (verificationsResult.success) {
+            setVerificationRequests(verificationsResult.data);
         }
         setLoading(false);
     };
 
+    const hasVerificationRequest = (hostelId) => {
+        return verificationRequests.some(req => 
+            req.hostelId === hostelId && req.status === 'pending'
+        );
+    };
+
+    const handleRequestVerification = (hostel) => {
+        navigate('/hostel/verification');
+    };
+
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this hostel?')) {
+        // First check if hostel has rooms
+        const roomsResult = await getRooms();
+        if (roomsResult.success) {
+            const hostelRooms = roomsResult.data.filter(room => room.hostelId === id);
+            if (hostelRooms.length > 0) {
+                alert(`⚠️ Cannot delete this hostel!\n\nThis hostel has ${hostelRooms.length} room(s). Please delete all rooms first before deleting the hostel.`);
+                return;
+            }
+        }
+
+        if (window.confirm('Are you sure you want to delete this hostel? This action cannot be undone.')) {
             const result = await deleteHostel(id);
             if (result.success) {
-                alert(result.message);
+                alert('✅ Hostel deleted successfully!');
                 loadHostels();
+            } else {
+                alert('❌ Failed to delete hostel. Please try again.');
             }
         }
     };
@@ -348,6 +378,19 @@ const HostelsList = () => {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Verification Button */}
+                                    {!hostel.verified && !hasVerificationRequest(hostel.id) && (
+                                        <div className="mb-2">
+                                            <button
+                                                className="btn btn-sm btn-success w-100"
+                                                onClick={() => handleRequestVerification(hostel)}
+                                            >
+                                                <i className="fas fa-certificate me-1"></i>
+                                                Request Verification
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* Actions */}
                                     <div className="d-flex gap-2">
