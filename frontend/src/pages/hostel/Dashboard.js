@@ -88,7 +88,7 @@ const Dashboard = () => {
                                     <h2 className="h3 fw-bold mb-0">{stats?.totalHostels || 0}</h2>
                                 </div>
                                 <div className="bg-primary bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-hotel text-primary fs-4"></i>
+                                    <i className="fas fa-building text-primary fs-4"></i>
                                 </div>
                             </div>
                             <p className="text-muted small mt-2 mb-0">

@@ -41,18 +41,22 @@ const HostelLayout = ({ children }) => {
             >
                 <div className="p-3 border-bottom" style={{ borderColor: '#dee2e6' }}>
                     <div className="d-flex align-items-center justify-content-between">
-                        <div className="d-flex align-items-center">
+                        <button 
+                            onClick={() => navigate('/')}
+                            className="d-flex align-items-center btn btn-link text-decoration-none p-0"
+                            style={{ border: 'none' }}
+                        >
                             <div
                                 className="bg-primary rounded d-flex align-items-center justify-content-center me-2"
                                 style={{ width: '40px', height: '40px' }}
                             >
-                                <i className="fas fa-hotel text-white"></i>
+                                <i className="fas fa-home text-white"></i>
                             </div>
                             <div>
                                 <h5 className="mb-0 fw-bold text-primary">Hamari Manzil</h5>
                                 <small className="text-muted">Hostel Portal</small>
                             </div>
-                        </div>
+                        </button>
                         <button
                             className="btn btn-link text-dark d-lg-none p-0"
                             onClick={() => setSidebarOpen(false)}
@@ -116,45 +120,24 @@ const HostelLayout = ({ children }) => {
                             </button>
 
                             <div className="d-flex align-items-center gap-3 ms-auto">
-                                <div className="dropdown">
-                                    <button
-                                        className="btn btn-link text-dark dropdown-toggle d-flex align-items-center text-decoration-none"
-                                        type="button"
-                                        id="userMenu"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false"
+                                <button
+                                    className="btn btn-link text-dark d-flex align-items-center text-decoration-none p-0"
+                                    onClick={() => navigate('/hostel/profile')}
+                                    style={{ border: 'none' }}
+                                >
+                                    <div
+                                        className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                                        style={{ width: '36px', height: '36px' }}
                                     >
-                                        <div
-                                            className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2"
-                                            style={{ width: '36px', height: '36px' }}
-                                        >
-                                            <i className="fas fa-user text-white"></i>
+                                        <i className="fas fa-user text-white"></i>
+                                    </div>
+                                    <div className="text-start d-none d-md-block">
+                                        <div className="fw-semibold small">Hostel Owner</div>
+                                        <div className="text-muted" style={{ fontSize: '12px' }}>
+                                            owner@example.com
                                         </div>
-                                        <div className="text-start d-none d-md-block">
-                                            <div className="fw-semibold small">Hostel Owner</div>
-                                            <div className="text-muted" style={{ fontSize: '12px' }}>
-                                                owner@example.com
-                                            </div>
-                                        </div>
-                                    </button>
-                                    <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                                        <li>
-                                            <button className="dropdown-item" onClick={() => navigate('/hostel/profile')}>
-                                                <i className="fas fa-user me-2"></i>
-                                                Profile
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <hr className="dropdown-divider" />
-                                        </li>
-                                        <li>
-                                            <button className="dropdown-item text-danger" onClick={handleLogout}>
-                                                <i className="fas fa-sign-out-alt me-2"></i>
-                                                Logout
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                                    </div>
+                                </button>
                             </div>
                         </div>
                     </div>
