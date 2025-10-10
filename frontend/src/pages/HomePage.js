@@ -5,9 +5,7 @@ import HeroSection from '../components/Home/HeroSection';
 import FeaturedHostelsGrid from '../components/Home/FeaturedHostelsGrid';
 import Testimonials from '../components/Home/Testimonials'
 import CallToActionCard from '../components/Home/CallToActionCard';
-import HomeFooter from '../components/Home/HomeFooter'
-import AuthLayout from '../components/Common/AuthLayout';
-
+import HomeFooter from '../components/Home/HomeFooter';
 
 
 const HomePage = () => {
@@ -25,32 +23,21 @@ const HomePage = () => {
     navigate('/profile');
   };
 
-  const handleSettingsClick = () => {
-    // Handle settings click
-    console.log('Settings clicked');
-  };
-
   const handleGetStarted = () => {
     navigate('/hostels');
   };
 
   return (
     <>
-    <AuthLayout
-      pageClassName="home-page"
-    >
       <HomeHeader 
         user={user}
         onProfileClick={handleProfileClick}
-        onSettingsClick={handleSettingsClick}
       />
       <HeroSection onSearchClick={() => navigate('/hostels')} />
       <FeaturedHostelsGrid />
       <Testimonials />
       <CallToActionCard onGetStarted={handleGetStarted} />
       <HomeFooter />
-    </AuthLayout>
-    
     </>
   );
 };
