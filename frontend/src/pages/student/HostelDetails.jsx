@@ -6,7 +6,7 @@ import RoomSelector from '../../components/RoomSelector';
 import ReviewCard from '../../components/ReviewCard';
 import ChatBox from '../../components/ChatBox';
 import MapComponent from '../../components/MapComponent';
-import { hostels, reviews, chatMessages, userProfile } from '../../data/hostels';
+import { hostels, reviews, chatMessages, userProfile, notifications } from '../../data/hostels';
 
 const HostelDetails = () => {
   const { id } = useParams();
@@ -21,35 +21,33 @@ const HostelDetails = () => {
   const [wishlist, setWishlist] = useState([]);
 
   useEffect(() => {
-    const foundHostel = hostels.find(h => h.id === parseInt(id));
+    const foundHostel = hostels.find((h) => h.id === parseInt(id));
     if (foundHostel) {
       setHostel(foundHostel);
-      setHostelReviews(reviews.filter(r => r.hostelId === foundHostel.id));
+      setHostelReviews(reviews.filter((r) => r.hostelId === foundHostel.id));
     }
   }, [id]);
 
-  const handleRoomSelect = (room) => {
-    setSelectedRoom(room);
+  const getUnreadNotifications = () =>
+    notifications.filter((n) => !n.read).length;
+
+  const userWithStats = {
+    ...user,
+    unreadNotifications: getUnreadNotifications(),
   };
 
-  const handleBookRoom = (room) => {
-    if (room) {
-      navigate(`/student/booking-confirmation/${hostel.id}/${room.id}`);
-    }
-  };
+  const handleRoomSelect = (room) => setSelectedRoom(room);
+
 
   const handleAddToWishlist = () => {
-    if (!wishlist.includes(hostel.id)) {
-      setWishlist([...wishlist, hostel.id]);
-    }
+    if (!wishlist.includes(hostel.id)) setWishlist([...wishlist, hostel.id]);
   };
 
   const handleRemoveFromWishlist = () => {
-    setWishlist(wishlist.filter(id => id !== hostel.id));
+    setWishlist(wishlist.filter((id) => id !== hostel.id));
   };
 
   const handleSendMessage = (message) => {
-    // In a real app, this would send the message to the server
     console.log('Sending message:', message);
   };
 
@@ -61,16 +59,13 @@ const HostelDetails = () => {
     for (let i = 0; i < fullStars; i++) {
       stars.push(<i key={i} className="fas fa-star text-warning"></i>);
     }
-
     if (hasHalfStar) {
       stars.push(<i key="half" className="fas fa-star-half-alt text-warning"></i>);
     }
-
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(<i key={`empty-${i}`} className="far fa-star text-warning"></i>);
     }
-
     return stars;
   };
 
@@ -90,108 +85,103 @@ const HostelDetails = () => {
   const isInWishlist = wishlist.includes(hostel.id);
 
   return (
-    <div className="hostel-details-page d-flex">
-      <Sidebar user={user} />
-      
-      <div className="main-content flex-grow-1">
-        <TopHeader user={user} onToggleSidebar={() => setMobileSidebarOpen(true)} />
-        
-        <div className="content p-4">
+    <div className="d-flex flex-column flex-lg-row min-vh-100">
+      {/* Sidebar */}
+      <Sidebar
+        user={userWithStats}
+        isMobileOpen={mobileSidebarOpen}
+        toggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+      />
+
+      {/* Main content */}
+      <main className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+        {/* Top Header */}
+        <TopHeader
+          user={userWithStats}
+          onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+        />
+
+        <div className="container-fluid p-3 p-md-4">
           {/* Back Button */}
           <button
-            className="btn btn-outline-secondary mb-3"
+            className="btn btn-outline-secondary mb-3 rounded-pill shadow-sm"
             onClick={() => navigate(-1)}
           >
-            <i className="fas fa-arrow-left me-2"></i>
-            Back to Search
+            <i className="fas fa-arrow-left me-2"></i>Back to Search
           </button>
 
           {/* Hostel Header */}
           <div className="row mb-4">
             <div className="col-lg-8">
-              <h1 className="fw-bold mb-2">{hostel.name}</h1>
-              <div className="d-flex align-items-center mb-3">
+              <h2 className="fw-bold mb-2 text-primary">{hostel.name}</h2>
+              <div className="d-flex align-items-center mb-3 flex-wrap">
                 <i className="fas fa-map-marker-alt text-muted me-2"></i>
                 <span className="text-muted">{hostel.location}</span>
                 <span className="mx-3 text-muted">•</span>
-                <div className="me-2">
-                  {renderStars(hostel.rating)}
-                </div>
+                <div className="me-2">{renderStars(hostel.rating)}</div>
                 <span className="text-muted">
                   {hostel.rating} ({hostel.totalReviews} reviews)
                 </span>
               </div>
               <p className="text-muted">{hostel.description}</p>
             </div>
-            <div className="col-lg-4 text-lg-end">
+
+            <div className="col-lg-4 text-lg-end mt-3 mt-lg-0">
               <div className="d-flex flex-column gap-2">
                 <button
                   className={`btn ${isInWishlist ? 'btn-danger' : 'btn-outline-primary'}`}
                   onClick={isInWishlist ? handleRemoveFromWishlist : handleAddToWishlist}
                 >
-                  <i className={`fas fa-heart ${isInWishlist ? '' : 'me-2'}`}></i>
+                  <i className={`fas fa-heart me-2`}></i>
                   {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
                 </button>
                 <button
                   className="btn btn-outline-secondary"
                   onClick={() => setShowChat(!showChat)}
                 >
-                  <i className="fas fa-comments me-2"></i>
-                  Chat with Owner
+                  <i className="fas fa-comments me-2"></i>Chat with Owner
                 </button>
               </div>
             </div>
           </div>
 
           {/* Image Gallery */}
-          <div className="row mb-4">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-body p-0">
-                  <div className="position-relative">
-                    <img
-                      src={hostel.images[currentImageIndex]}
-                      className="img-fluid w-100"
-                      alt={hostel.name}
-                      style={{ height: '400px', objectFit: 'cover' }}
-                    />
-                    {hostel.images.length > 1 && (
-                      <>
-                        <button
-                          className="btn btn-light position-absolute top-50 start-0 translate-middle-y ms-3"
-                          onClick={() => setCurrentImageIndex(
-                            currentImageIndex === 0 ? hostel.images.length - 1 : currentImageIndex - 1
-                          )}
-                        >
-                          <i className="fas fa-chevron-left"></i>
-                        </button>
-                        <button
-                          className="btn btn-light position-absolute top-50 end-0 translate-middle-y me-3"
-                          onClick={() => setCurrentImageIndex(
-                            currentImageIndex === hostel.images.length - 1 ? 0 : currentImageIndex + 1
-                          )}
-                        >
-                          <i className="fas fa-chevron-right"></i>
-                        </button>
-                        <div className="position-absolute bottom-0 start-0 end-0 p-3">
-                          <div className="d-flex justify-content-center gap-2">
-                            {hostel.images.map((_, index) => (
-                              <button
-                                key={index}
-                                className={`btn btn-sm rounded-circle ${
-                                  index === currentImageIndex ? 'btn-primary' : 'btn-light'
-                                }`}
-                                onClick={() => setCurrentImageIndex(index)}
-                                style={{ width: '12px', height: '12px' }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+          <div className="card mb-4 border-0 shadow-sm">
+            <div className="position-relative">
+              <img
+                src={hostel.images[currentImageIndex]}
+                className="img-fluid w-100 rounded-top"
+                alt={hostel.name}
+                style={{ height: '400px', objectFit: 'cover' }}
+              />
+              {hostel.images.length > 1 && (
+                <>
+                  <button
+                    className="btn btn-light position-absolute top-50 start-0 translate-middle-y ms-3"
+                    onClick={() =>
+                      setCurrentImageIndex(
+                        currentImageIndex === 0
+                          ? hostel.images.length - 1
+                          : currentImageIndex - 1
+                      )
+                    }
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                  <button
+                    className="btn btn-light position-absolute top-50 end-0 translate-middle-y me-3"
+                    onClick={() =>
+                      setCurrentImageIndex(
+                        currentImageIndex === hostel.images.length - 1
+                          ? 0
+                          : currentImageIndex + 1
+                      )
+                    }
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -199,9 +189,9 @@ const HostelDetails = () => {
             {/* Main Content */}
             <div className="col-lg-8">
               {/* Amenities */}
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h6 className="mb-0 fw-bold">Amenities</h6>
+              <div className="card mb-4 border-0 shadow-sm">
+                <div className="card-header bg-white border-0">
+                  <h6 className="fw-bold mb-0">Amenities</h6>
                 </div>
                 <div className="card-body">
                   <div className="row">
@@ -217,22 +207,23 @@ const HostelDetails = () => {
                 </div>
               </div>
 
-              {/* Room Selection */}
-              <div className="card mb-4">
+              {/* Rooms */}
+              <div className="card mb-4 border-0 shadow-sm">
                 <div className="card-body">
                   <RoomSelector
                     rooms={hostel.rooms}
                     selectedRoom={selectedRoom}
                     onRoomSelect={handleRoomSelect}
-                    onBookRoom={handleBookRoom}
                   />
                 </div>
               </div>
 
               {/* Reviews */}
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h6 className="mb-0 fw-bold">Reviews ({hostelReviews.length})</h6>
+              <div className="card mb-4 border-0 shadow-sm">
+                <div className="card-header bg-white border-0">
+                  <h6 className="fw-bold mb-0">
+                    Reviews ({hostelReviews.length})
+                  </h6>
                 </div>
                 <div className="card-body">
                   {hostelReviews.length === 0 ? (
@@ -242,11 +233,8 @@ const HostelDetails = () => {
                     </div>
                   ) : (
                     <div className="row">
-                      {hostelReviews.map(review => (
-                        <ReviewCard
-                          key={review.id}
-                          review={review}
-                        />
+                      {hostelReviews.map((review) => (
+                        <ReviewCard key={review.id} review={review} />
                       ))}
                     </div>
                   )}
@@ -254,20 +242,17 @@ const HostelDetails = () => {
               </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar Content (Right Column) */}
             <div className="col-lg-4">
               {/* Map */}
-              <div className="card mb-4">
-                <MapComponent
-                  hostels={[hostel]}
-                  selectedHostelId={hostel.id}
-                />
+              <div className="card mb-4 border-0 shadow-sm">
+                <MapComponent hostels={[hostel]} selectedHostelId={hostel.id} />
               </div>
 
               {/* Contact Info */}
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h6 className="mb-0 fw-bold">Contact Information</h6>
+              <div className="card border-0 shadow-sm">
+                <div className="card-header bg-white border-0">
+                  <h6 className="fw-bold mb-0">Contact Information</h6>
                 </div>
                 <div className="card-body">
                   <div className="d-flex align-items-center mb-3">
@@ -284,11 +269,11 @@ const HostelDetails = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center mb-2">
                       <i className="fas fa-envelope text-muted me-2"></i>
                       <span>{hostel.owner.email}</span>
                     </div>
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center mb-2">
                       <i className="fas fa-phone text-muted me-2"></i>
                       <span>{hostel.owner.phone}</span>
                     </div>
@@ -302,7 +287,7 @@ const HostelDetails = () => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Chat Box */}
       {showChat && (
@@ -310,7 +295,7 @@ const HostelDetails = () => {
           hostelId={hostel.id}
           hostelName={hostel.name}
           ownerName={hostel.owner.name}
-          messages={chatMessages.filter(m => m.hostelId === hostel.id)}
+          messages={chatMessages.filter((m) => m.hostelId === hostel.id)}
           onSendMessage={handleSendMessage}
         />
       )}

@@ -16,7 +16,7 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete }) => {
 
   // Safe timestamp formatting
   const formatTime = (timestamp) => {
-    if (!timestamp) return ''; // handle missing timestamp
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     if (isNaN(date)) return '';
     const now = new Date();

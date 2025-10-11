@@ -11,10 +11,10 @@ const HostelCard = ({
 
   // Navigate to hostel details
   const handleViewDetails = () => {
-    navigate(`/hostels/${hostel.id}`);
+    navigate(`/student/hostel-details/${hostel.id}`);
   };
 
-  // Toggle wishlist (no page reload or navigation)
+  // Toggle wishlist
   const toggleWishlist = (e) => {
     e.stopPropagation();
     if (isInWishlist) {
@@ -63,19 +63,19 @@ const HostelCard = ({
           src={
             hostel.images && hostel.images.length > 0
               ? hostel.images[0]
-              : '/images/default-hostel.jpg' // ✅ fallback image
+              : '/images/default-hostel.jpg'
           }
           alt={hostel.name}
           className="card-img-top"
           style={{ height: '200px', objectFit: 'cover', borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem' }}
         />
 
-        {/* ✅ Verified Badge */}
+        {/* Verified Badge */}
         {hostel.verified && (
           <span className="badge bg-success position-absolute top-0 start-0 m-2">Verified</span>
         )}
 
-        {/* ❤️ Wishlist Icon */}
+        {/* Wishlist Icon */}
         <button
           onClick={toggleWishlist}
           className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light rounded-circle shadow-sm"
@@ -90,7 +90,7 @@ const HostelCard = ({
           <i className={isInWishlist ? 'fas fa-heart text-danger' : 'far fa-heart text-muted'} />
         </button>
 
-        {/* 📍 Location Overlay */}
+        {/* Location */}
         <div className="position-absolute bottom-0 start-0 m-2">
           <span className="badge bg-primary">
             <i className="fas fa-map-marker-alt me-1"></i>

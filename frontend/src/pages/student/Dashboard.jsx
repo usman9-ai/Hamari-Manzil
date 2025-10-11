@@ -32,7 +32,7 @@ const Dashboard = () => {
     unreadNotifications: getUnreadNotifications(),
   };
 
-  // Subcomponent for responsive stat cards
+
   const StatCard = ({ stat }) => {
     const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 992);
 

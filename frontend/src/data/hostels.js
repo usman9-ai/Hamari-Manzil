@@ -320,8 +320,9 @@ export const wishlist = [
 
 export const userProfile = {
   id: 1,
-  firstName: "Talha",
-  lastName: "Naeem",
+  first_name: "Talha",
+  last_name: "Naeem",
+  username: "talha_naeeem",
   email: "talha.naeem@example.com",
   phone: "+92-300-1234567",
   city: "Lahore",

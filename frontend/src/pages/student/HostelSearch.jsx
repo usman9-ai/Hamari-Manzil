@@ -88,7 +88,7 @@ const HostelSearch = () => {
     });
 
     setFilteredHostels(results);
-    setMobileFiltersOpen(false); // auto-close on mobile
+    setMobileFiltersOpen(false);
   };
 
   const handleAddToWishlist = (hostelId) => {
@@ -107,7 +107,7 @@ const HostelSearch = () => {
 
       {/* ===== Main Section ===== */}
       <div className="flex-grow-1">
-        {/* ===== Header (same as Dashboard) ===== */}
+        {/* ===== Header ===== */}
         <TopHeader user={userWithStats} />
 
         <div className="container my-4">
@@ -236,7 +236,6 @@ const HostelSearch = () => {
             </div>
           )}
 
-          {/* ===== Main Grid ===== */}
           <div className="row">
             {/* Sidebar Filters (Desktop) */}
             <div className="col-lg-3 d-none d-lg-block">

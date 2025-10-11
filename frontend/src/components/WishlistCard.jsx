@@ -47,7 +47,7 @@ const WishlistCard = ({ hostel, onRemoveFromWishlist, addedDate }) => {
           style={{ height: '180px', objectFit: 'cover' }}
         />
 
-        {/* Wishlist / Favorite Icon (like HostelCard) */}
+        {/* Wishlist / Favorite Icon */}
         <button
           onClick={handleRemove}
           className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light rounded-circle shadow-sm"
@@ -63,7 +63,7 @@ const WishlistCard = ({ hostel, onRemoveFromWishlist, addedDate }) => {
           <i className="fas fa-heart text-danger" />
         </button>
 
-        {/* Location Badge like HostelCard */}
+        {/* Location Badge */}
         <div className="position-absolute bottom-0 start-0 m-2">
           <span className="badge bg-primary">
             <i className="fas fa-map-marker-alt me-1"></i>
@@ -78,7 +78,7 @@ const WishlistCard = ({ hostel, onRemoveFromWishlist, addedDate }) => {
           {hostel.description || 'A comfortable stay with modern amenities.'}
         </p>
 
-        {/* Amenities like WishlistCard */}
+        {/* Amenities */}
         <div className="d-flex flex-wrap gap-1 mb-2">
           {hostel.amenities.slice(0, 3).map((amenity, index) => (
             <span key={index} className="badge bg-light text-dark border">

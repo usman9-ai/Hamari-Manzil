@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Avatar from 'boring-avatars';
-import { useNotifications } from '../../context/NotificationContext'; // ✅ Import global notification state
 
 const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
@@ -10,8 +9,8 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Use global notification context
-  const { notifications, unreadCount } = useNotifications();
+  const unreadCount = user?.unreadNotifications || 0;
+  const notifications = user?.notifications || [];
 
   const toggleMobileSidebar = () => setIsMobileOpen(!isMobileOpen);
 
@@ -39,8 +38,9 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
 
   return (
     <>
-      {/* ✅ Mobile Top Bar */}
+      {/* Mobile Top Bar */}
       <div className="d-flex d-md-none justify-content-between align-items-center px-3 py-2 bg-white shadow-sm border-bottom">
+
         {/* Hamburger */}
         <button
           className="btn btn-primary border-0"
@@ -130,7 +130,7 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
         </div>
       </div>
 
-      {/* ✅ Sidebar (desktop + mobile) */}
+      {/* Sidebar */}
       <nav
         className={`sidebar-nav bg-white border-end shadow-sm flex-column transition-all ${
           isCollapsed ? 'collapsed' : ''

@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import TopHeader from '../../components/TopHeader';
 import ReviewCard from '../../components/ReviewCard';
-import { reviews as allReviews, userProfile } from '../../data/hostels';
+import { reviews as allReviews, userProfile, notifications } from '../../data/hostels';
 
 const Reviews = () => {
-  const [user] = useState(userProfile);
+  // ---------- State ----------
+  const [user, setUser] = useState(userProfile);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [reviews, setReviews] = useState(allReviews);
@@ -14,6 +15,13 @@ const Reviews = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [newReview, setNewReview] = useState({ rating: 5, title: '', comment: '' });
 
+  // ---------- Unread Notifications ----------
+  useEffect(() => {
+    const unreadCount = notifications.filter(n => !n.read).length;
+    setUser(prev => ({ ...prev, unreadNotifications: unreadCount }));
+  }, []);
+
+  // ---------- Filter & Sort Reviews ----------
   const filteredReviews = useMemo(() => {
     let list = [...reviews];
     if (ratingFilter > 0) list = list.filter(r => r.rating >= ratingFilter);
@@ -30,6 +38,7 @@ const Reviews = () => {
     return list;
   }, [reviews, ratingFilter, searchQuery, sortBy]);
 
+  // ---------- Handlers ----------
   const handleHelpful = (reviewId) =>
     setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, helpful: r.helpful + 1 } : r));
 
@@ -83,7 +92,7 @@ const Reviews = () => {
           </div>
 
           {/* Write Review */}
-          <div className="card mb-4">
+          <div className="card mb-4 mx-auto" style={{ maxWidth: '700px' }}>
             <div className="card-header"><h6 className="mb-0 fw-bold">Write a Review</h6></div>
             <div className="card-body">
               <form onSubmit={handleSubmitReview}>
@@ -191,25 +200,20 @@ const Reviews = () => {
               <h5 className="text-muted">No reviews found</h5>
             </div>
           ) : (
-            <div className="container-xl">
-            <div className="row justify-content-center row-cols-1 row-cols-md-2 g-4">
+            <div className="row g-4">
               {filteredReviews.map(r => (
-                <div key={r.id} className="col d-flex justify-content-center">
-                  <div style={{ width: '100%', maxWidth: '700px' }}>
+                <div key={r.id} className="col-12 col-md-6 col-lg-4 d-flex">
                   <ReviewCard
                     review={r}
                     onHelpful={handleHelpful}
                     onReport={handleReport}
-                    style={{ width: '100%', minheight: '500px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                    style={{ width: '100%' }}
                   />
-                  </div>
                 </div>
               ))}
             </div>
-          </div>
           )}
 
-          {/* Bottom spacing for mobile scroll */}
           <div className="d-block d-md-none" style={{ height: '70px' }}></div>
         </div>
       </main>
