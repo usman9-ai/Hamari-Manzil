@@ -12,7 +12,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
-
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,6 +28,9 @@ SECRET_KEY = 'django-insecure-_f1kml_ka0vbyulx6083^e^-4cv_ipmc9n92c(-ze&(_@_#(uv
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# WhatsApp Configuration - Simple wa.me links (as per roadmap)
+# No external service needed - just wa.me link generation
 
 ALLOWED_HOSTS = []
 
@@ -46,17 +52,25 @@ INSTALLED_APPS = [
     'engagement',
     'moderation',
     'rest_framework',
+    'cloudinary',
+    'cloudinary_storage',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # Only for development
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -142,6 +156,20 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_NAME'),
+    api_key=config('CLOUDINARY_API_KEY'),
+    api_secret=config('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUDINARY_NAME'),
+    'API_KEY': config('CLOUDINARY_API_KEY'),
+    'API_SECRET': config('CLOUDINARY_API_SECRET'),
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -171,3 +199,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'hamarimanzil1@gmail.com'
 EMAIL_HOST_PASSWORD = 'xjma dnco eiuj owwa' 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+# Use Cloudinary for default storage
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

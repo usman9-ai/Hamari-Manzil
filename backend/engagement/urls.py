@@ -4,21 +4,25 @@ from .views import (
     ReviewListCreateView,
     ReviewDetailView,
     FavoriteListCreateView,
+    FavoriteDeleteView,
+    HostelFavoritesView,
     InteractionLogCreateView
 )
 
 urlpatterns = [
     # Search
-    path('hostelsearch/', HostelSearchView.as_view(), name='hostel-search'),
+    path('search/', HostelSearchView.as_view(), name='hostel-search'),
     
-
     # Reviews
-    path('reviews/create', ReviewListCreateView.as_view(), name='create-review'),
-    path('reviews/view/', ReviewDetailView.as_view(), name='view-reviews'),
+    path('reviews/', ReviewListCreateView.as_view(), name='review-list-create'),
+    path('reviews/<int:pk>/', ReviewDetailView.as_view(), name='review-detail'),
+    path('hostels/<int:hostel_id>/reviews/', ReviewListCreateView.as_view(), name='hostel-reviews'),
 
     # Favorites
-    path('favorites/<int:hostel_id>/toggle/', FavoriteListCreateView.as_view(), name='toggle-favorite'),
+    path('favorites/', FavoriteListCreateView.as_view(), name='favorite-list-create'),
+    path('favorites/<int:pk>/', FavoriteDeleteView.as_view(), name='favorite-delete'),
+    path('hostels/<int:hostel_id>/favorite/', HostelFavoritesView.as_view(), name='check-favorite'),
 
-    # Interactions
-    path('interactions/<int:hostel_id>/', InteractionLogCreateView.as_view(), name='log-interaction'),
+    # Contact & Interactions
+    path('interactions/', InteractionLogCreateView.as_view(), name='create-interaction'),
 ]

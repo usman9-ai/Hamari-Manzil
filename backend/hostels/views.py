@@ -1,3 +1,38 @@
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from .models import Room, RoomImage
+from .serializers import RoomImageSerializer
+# views.py
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Hostel, Room
+from .serializers import RoomSerializer
+
+
+# ---------------------------
+# Upload multiple images for a room
+# ---------------------------
+class RoomImageUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id)
+        images = request.FILES.getlist('images')
+        image_objs = []
+        for img in images:
+            image_obj = RoomImage(room=room, image=img)
+            image_obj.save()
+            image_objs.append(image_obj)
+        serializer = RoomImageSerializer(image_objs, many=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,6 +44,10 @@ from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from .choices import HOSTEL_FACILITIES
 from rest_framework.generics import RetrieveAPIView
+
+from rest_framework import generics, permissions
+from .models import Hostel, Room
+from .serializers import HostelSerializer, RoomSerializer
 
 
 # -----------------------------
@@ -76,6 +115,7 @@ class HostelDeleteView(APIView):
 # ---------------------------
 # Create Room Listing
 # ---------------------------
+
 class CreateRoomView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -86,12 +126,14 @@ class CreateRoomView(APIView):
         if user.role != "owner":
             raise PermissionDenied("Only owners can create room listings.")
 
-        if not Hostel.objects.filter(id=hostel_id, owner=user).exists():
+        try:
+            hostel = Hostel.objects.get(id=hostel_id, owner=user)
+        except Hostel.DoesNotExist:
             raise PermissionDenied("You can only add rooms to your own hostels.")
 
-        serializer = RoomSerializer(data=request.data)
+        serializer = RoomSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(hostel=hostel)  # ✅ Explicitly attach the correct hostel
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -171,6 +213,50 @@ class RoomDeleteView(APIView):
         )
 
 
+# ---------------------------
+# Update Hostel
+# ---------------------------
+class HostelUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        user = request.user
+        if user.role != "owner":
+            return Response(
+                {"error": "Only owners can update hostels."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        hostel = get_object_or_404(Hostel, pk=pk, owner=user)
+        serializer = HostelSerializer(hostel, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------
+# Update Room
+# ---------------------------
+class RoomUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        user = request.user
+        if user.role != "owner":
+            return Response(
+                {"error": "Only owners can update rooms."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        room = get_object_or_404(Room, pk=pk, hostel__owner=user)
+        serializer = RoomSerializer(room, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class RoomDetailView(RetrieveAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomDetailSerializer
@@ -182,3 +268,28 @@ class RoomDetailView(RetrieveAPIView):
             raise PermissionDenied("Only owners can view room details.")
 
         return get_object_or_404(Room, pk=self.kwargs["pk"], hostel__owner=user)
+
+
+
+# ---- Edit Hostel ----
+class HostelUpdateView(generics.RetrieveUpdateAPIView):
+    queryset = Hostel.objects.all()
+    serializer_class = HostelSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Optional: Only allow owner to edit their own hostel
+        user = self.request.user
+        return Hostel.objects.filter(owner=user)
+
+
+# ---- Edit Room ----
+class RoomUpdateView(generics.RetrieveUpdateAPIView):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Only allow editing rooms of hostels owned by this user
+        user = self.request.user
+        return Room.objects.filter(hostel__owner=user)

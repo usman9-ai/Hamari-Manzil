@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.core.validators import RegexValidator
+from cloudinary.models import CloudinaryField
 
 class User(AbstractUser):
     # Roles
@@ -21,10 +23,22 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, blank=False, null=False)
     username = models.CharField(max_length=150, unique=True, blank=False, null=False)
     # Custom fields
+    profile_picture = CloudinaryField('image', null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male', blank=False, null=False)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student',  blank=False, null=False)
-    phone = models.CharField(max_length=15,  blank=False, null=False)
+    phone_regex = RegexValidator(
+        regex=r'^(\+92|0)?3\d{9}$',
+        message="Phone number must be a valid Pakistani number. Format: +923XXXXXXXXX or 03XXXXXXXXX"
+    )
+    phone = models.CharField(
+        validators=[phone_regex],
+        max_length=13,
+        blank=False,
+        null=False,
+        help_text="Pakistani mobile number starting with +923 or 03"
+    )
     city = models.CharField(max_length=50,  blank=False, null=False)
+    verification_status = models.BooleanField(default=False)
 
     # Override inherited ManyToManyFields to avoid reverse accessor conflicts
     groups = models.ManyToManyField(

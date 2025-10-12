@@ -1,4 +1,9 @@
 hostel_env/        
 .env
-#Node
+__pycache__/
+*.pyc
+
+# Node
 node_modules/
+backend/whatsapp-service/
+backend/whatsapp_data/

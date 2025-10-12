@@ -1,0 +1,169 @@
+{
+    "info": {
+        "_postman_id": "ef89b2d3-4a56-4b93-8f5c-2e7890123456",
+        "name": "Hostel Finder API - Simple",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"testowner\",\n    \"password\": \"testpass123\",\n    \"email\": \"owner@test.com\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"Owner\",\n    \"phone\": \"03001234567\",\n    \"role\": \"owner\",\n    \"gender\": \"male\",\n    \"city\": \"Lahore\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/users/register/"
+                    }
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var res = pm.response.json();",
+                                    "if (res.token) {",
+                                    "    pm.environment.set('token', res.token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"testowner\",\n    \"password\": \"testpass123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/users/login/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. User Verification",
+            "item": [
+                {
+                    "name": "Request Verification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "whatsapp_number",
+                                    "value": "+923001234567",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "profile_image",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "cnic_image",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": "{{base_url}}/moderation/verifications/request_user_verification/"
+                    }
+                },
+                {
+                    "name": "Verify OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"otp\": \"123456\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/moderation/verifications/{{verification_id}}/verify_whatsapp/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Hostel",
+            "item": [
+                {
+                    "name": "Create Hostel",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var res = pm.response.json();",
+                                    "if (res.id) {",
+                                    "    pm.environment.set('hostel_id', res.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test Hostel\",\n    \"address\": \"Test Address\",\n    \"description\": \"Test Description\",\n    \"gender_type\": \"male\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/hostels/"
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000/api"
+        }
+    ]
+}
