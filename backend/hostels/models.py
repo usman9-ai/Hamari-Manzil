@@ -39,6 +39,7 @@ class Hostel(models.Model):
     total_rooms = models.IntegerField( blank=False, null=False)
     description = models.TextField(blank=True, null=True)
     verification_status = models.BooleanField(default=False)
+    verification_status = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -53,6 +54,7 @@ class Room(models.Model):
     facilities = models.JSONField(blank=True, null=True, help_text="List of available facilities")
     description = models.TextField(blank=True, null=True)
     is_available = models.BooleanField(default=True)  
+    verification_status = models.BooleanField(default=False)
     verification_status = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
