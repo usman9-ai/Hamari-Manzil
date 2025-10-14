@@ -38,7 +38,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Hostel, Room
-from .serializers import HostelSerializer, RoomSerializer, RoomDetailSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
@@ -111,6 +111,28 @@ class HostelDeleteView(APIView):
             status=status.HTTP_204_NO_CONTENT
         )
 
+
+# ---------------------------
+# Edit Hostel Information
+# ---------------------------
+class HostelUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        user = request.user
+
+        if user.role != "owner":
+            return Response(
+                {"error": "Only owners can update hostels."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        hostel = get_object_or_404(Hostel, pk=pk, owner=user)
+        serializer = HostelSerializer(hostel, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(owner=user)  # ensure owner can’t be changed
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ---------------------------
 # Create Room Listing

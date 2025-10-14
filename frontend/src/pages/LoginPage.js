@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LoginHeader from '../components/Login/LoginHeader';
 import LoginForm from '../components/Login/LoginForm';
 import LoginFooter from '../components/Login/LoginFooter';
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLoginSuccess = (data) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    window.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   const handleLoginSubmit = (data) => {
     setLoading(true);
-    
+
     // LoginForm handles the API call
     setTimeout(() => {
       setLoading(false);

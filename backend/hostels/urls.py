@@ -19,6 +19,8 @@ urlpatterns = [
     path("my-rooms/", MyRoomsView.as_view(), name="my-rooms"),
     path("rooms/<int:pk>/availability/", RoomAvailabilityUpdateView.as_view(), name="room-availability"),
     path("delete-room/<int:pk>/", RoomDeleteView.as_view(), name="delete-hostel"),
+    path('hostels/<int:pk>/edit/', HostelUpdateView.as_view(), name='hostel-edit'),
+    path('rooms/<int:pk>/edit/', RoomUpdateView.as_view(), name='room-edit'),
 
 path("edit-hostel/<int:pk>/", HostelUpdateView.as_view(), name="edit-hostel"),
 path("rooms/<int:pk>/edit/", RoomUpdateView.as_view(), name="edit-room"),
