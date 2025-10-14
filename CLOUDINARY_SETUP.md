@@ -262,3 +262,4 @@ POST /api/moderation/verifications/request_user_verification/
 
 **Note**: The `.env` file is already in `.gitignore`, so your credentials won't be committed to git. Keep it secure!
 
+

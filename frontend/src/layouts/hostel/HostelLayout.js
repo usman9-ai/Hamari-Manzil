@@ -11,7 +11,17 @@ const HostelLayout = ({ children }) => {
         { path: '/hostel/hostels', icon: 'fa-hotel', label: 'Hostels' },
         { path: '/hostel/rooms', icon: 'fa-bed', label: 'Rooms' },
         { path: '/hostel/reviews', icon: 'fa-star', label: 'Reviews' },
-        { path: '/hostel/verification', icon: 'fa-certificate', label: 'Verification' },
+        { 
+            path: '/hostel/verification', 
+            icon: 'fa-certificate', 
+            label: 'Verification',
+            submenu: [
+                { path: '/hostel/verification', icon: 'fa-dashboard', label: 'Verification Dashboard' },
+                { path: '/hostel/user-verification', icon: 'fa-user-check', label: 'User Verification' },
+                { path: '/hostel/hostel-verification', icon: 'fa-building', label: 'Hostel Verification' },
+                { path: '/hostel/room-verification', icon: 'fa-camera', label: 'Room Verification' },
+            ]
+        },
     ];
 
     const isActive = (path) => location.pathname === path;
@@ -64,23 +74,50 @@ const HostelLayout = ({ children }) => {
 
                 <nav className="p-3">
                     {menuItems.map((item) => (
-                        <button
-                            key={item.path}
-                            onClick={() => navigate(item.path)}
-                            className={`btn w-100 text-start mb-2 d-flex align-items-center ${isActive(item.path)
-                                ? 'btn-primary text-white'
-                                : 'btn-link text-dark text-decoration-none'
-                                }`}
-                            style={{
-                                borderRadius: '10px',
-                                padding: '12px 16px',
-                                fontWeight: isActive(item.path) ? '600' : '500',
-                                backgroundColor: isActive(item.path) ? undefined : 'transparent',
-                            }}
-                        >
-                            <i className={`fas ${item.icon} me-3`} style={{ width: '20px' }}></i>
-                            <span>{item.label}</span>
-                        </button>
+                        <div key={item.path} className="mb-2">
+                            <button
+                                onClick={() => navigate(item.path)}
+                                className={`btn w-100 text-start d-flex align-items-center ${isActive(item.path)
+                                    ? 'btn-primary text-white'
+                                    : 'btn-link text-dark text-decoration-none'
+                                    }`}
+                                style={{
+                                    borderRadius: '10px',
+                                    padding: '12px 16px',
+                                    fontWeight: isActive(item.path) ? '600' : '500',
+                                    backgroundColor: isActive(item.path) ? undefined : 'transparent',
+                                }}
+                            >
+                                <i className={`fas ${item.icon} me-3`} style={{ width: '20px' }}></i>
+                                <span>{item.label}</span>
+                            </button>
+                            
+                            {/* Submenu */}
+                            {item.submenu && (
+                                <div className="ms-4 mt-2">
+                                    {item.submenu.map((subItem) => (
+                                        <button
+                                            key={subItem.path}
+                                            onClick={() => navigate(subItem.path)}
+                                            className={`btn w-100 text-start d-flex align-items-center ${isActive(subItem.path)
+                                                ? 'btn-primary text-white'
+                                                : 'btn-link text-dark text-decoration-none'
+                                                }`}
+                                            style={{
+                                                borderRadius: '8px',
+                                                padding: '8px 12px',
+                                                fontSize: '14px',
+                                                fontWeight: isActive(subItem.path) ? '600' : '500',
+                                                backgroundColor: isActive(subItem.path) ? undefined : 'transparent',
+                                            }}
+                                        >
+                                            <i className={`fas ${subItem.icon} me-2`} style={{ width: '16px' }}></i>
+                                            <span>{subItem.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </nav>
 

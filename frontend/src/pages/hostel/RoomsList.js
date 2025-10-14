@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getRooms, deleteRoom, updateRoom, createRoom, getHostels } from '../../actions/hostelActions';
-import { roomFacilitiesOptions } from '../../services/hostelDummyData';
+import { fetchMyRooms, handleDeleteRoom, handleUpdateRoom, handleCreateRoom, handleToggleAvailability } from '../../services/roomServices';
+import { fetchMyHostels } from '../../services/hostelServices';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import ToastContainer from '../../components/ui/ToastContainer';
+import useToast from '../../hooks/useToast';
 import RoomForm from './RoomForm';
 
 const RoomsList = () => {
@@ -19,6 +21,30 @@ const RoomsList = () => {
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { toasts, showSuccess, showError, removeToast } = useToast();
+
+    // Helper function to construct Cloudinary URL
+    const getCloudinaryUrl = (media) => {
+        if (!media) return null;
+        
+        let url;
+        // If it already contains the full Cloudinary URL, return as is
+        if (media.startsWith('http')) {
+            url = media;
+        } else if (media.includes('image/upload/')) {
+            // If it's a partial path that already contains image/upload/, construct URL without adding another image/upload/
+            // Extract the part after image/upload/ and use it as the public_id
+            const publicId = media.split('image/upload/')[1];
+            url = `https://res.cloudinary.com/musa-bukhari/image/upload/w_400,h_200,c_fill,q_auto,f_auto/${publicId}`;
+        } else {
+            // Otherwise construct the URL with the media as public_id
+            url = `https://res.cloudinary.com/musa-bukhari/image/upload/w_400,h_200,c_fill,q_auto,f_auto/${media}`;
+        }
+        
+        // Add cache-busting parameter with a more stable approach
+        const cacheBuster = Math.floor(Date.now() / 1000); // Changes every second instead of every millisecond
+        return `${url}?t=${cacheBuster}`;
+    };
 
     useEffect(() => {
         loadData();
@@ -37,34 +63,68 @@ const RoomsList = () => {
 
     const loadData = async () => {
         setLoading(true);
+        try {
         const [roomsResult, hostelsResult] = await Promise.all([
-            getRooms(),
-            getHostels()
+                fetchMyRooms(),
+                fetchMyHostels()
         ]);
-        if (roomsResult.success) {
-            setRooms(roomsResult.data);
-        }
+            if (roomsResult.success) {
+                console.log('Loaded rooms:', roomsResult.data);
+                setRooms(roomsResult.data);
+                
+                // Debug: Log media and hostel information for each room
+                roomsResult.data.forEach((room, index) => {
+                    console.log(`Room ${index + 1} (ID: ${room.id}):`, {
+                        media: room.media,
+                        images: room.images,
+                        hostel: room.hostel,
+                        hostel_type: typeof room.hostel,
+                        hostel_name: room.hostel_name,
+                        constructedUrl: getCloudinaryUrl(room.media)
+                    });
+                });
+            }
         if (hostelsResult.success) {
+                console.log('Loaded hostels for filter:', hostelsResult.data);
             setHostels(hostelsResult.data);
+            }
+        } catch (error) {
+            console.error('Failed to load data:', error);
+            showError('Error', 'Failed to load rooms and hostels');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this room?')) {
-            const result = await deleteRoom(id);
+            try {
+                const result = await handleDeleteRoom(id);
             if (result.success) {
-                alert(result.message);
+                    showSuccess('Success!', 'Room deleted successfully');
                 loadData();
+                } else {
+                    showError('Error', result.message);
+                }
+            } catch (error) {
+                console.error('Failed to delete room:', error);
+                showError('Error', 'Failed to delete room');
             }
         }
     };
 
     const toggleAvailability = async (room) => {
-        const newStatus = room.status === 'available' ? 'occupied' : 'available';
-        const result = await updateRoom(room.id, { status: newStatus });
+        try {
+            const result = await handleToggleAvailability(room.id, !room.is_available);
         if (result.success) {
+                showSuccess('Success!', `Room ${room.is_available ? 'marked as unavailable' : 'marked as available'}`);
             loadData();
+            } else {
+                showError('Error', result.message);
+            }
+        } catch (error) {
+            console.error('Failed to toggle room availability:', error);
+            showError('Error', 'Failed to update room availability');
         }
     };
 
@@ -77,33 +137,84 @@ const RoomsList = () => {
         setSubmitting(true);
         try {
             const result = editingRoom
-                ? await updateRoom(editingRoom.id, formData)
-                : await createRoom(formData);
+                ? await handleUpdateRoom(editingRoom.id, formData)
+                : await handleCreateRoom(formData);
 
             if (result.success) {
-                alert(result.message);
+                showSuccess('Success!', editingRoom ? 'Room updated successfully' : 'Room created successfully');
                 setShowModal(false);
                 setEditingRoom(null);
                 loadData();
             } else {
-                alert(result.message || 'Operation failed');
+                showError('Error', result.message || 'Operation failed');
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('An error occurred');
+            showError('Error', 'An error occurred');
         } finally {
             setSubmitting(false);
         }
     };
 
     const filteredRooms = rooms.filter(room => {
-        const matchesSearch = room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            room.hostelName.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = !filterType || room.type === filterType;
-        const matchesStatus = !filterStatus || room.status === filterStatus;
-        const matchesHostel = !filterHostelId || room.hostelId === parseInt(filterHostelId);
+        const matchesSearch = searchTerm === '' || 
+            room.id.toString().includes(searchTerm) ||
+            room.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            room.hostel_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = !filterType || room.room_type === filterType;
+        const matchesStatus = !filterStatus || 
+            (filterStatus === 'available' && room.is_available) ||
+            (filterStatus === 'unavailable' && !room.is_available);
+        const matchesHostel = !filterHostelId || 
+            room.hostel === parseInt(filterHostelId) || 
+            room.hostel === filterHostelId ||
+            String(room.hostel) === String(filterHostelId);
+        
+        // Debug logging
+        if (searchTerm || filterType || filterStatus || filterHostelId) {
+                console.log(`Room ${room.id} filter check:`, {
+                room_id: room.id,
+                room_type: room.room_type,
+                is_available: room.is_available,
+                hostel: room.hostel,
+                hostel_type: typeof room.hostel,
+                searchTerm,
+                filterType,
+                filterStatus,
+                filterHostelId,
+                filterHostelId_type: typeof filterHostelId,
+                parseInt_filterHostelId: parseInt(filterHostelId),
+                matchesSearch,
+                matchesType,
+                matchesStatus,
+                matchesHostel,
+                finalMatch: matchesSearch && matchesType && matchesStatus && matchesHostel
+            });
+        }
+        
         return matchesSearch && matchesType && matchesStatus && matchesHostel;
     });
+
+    // Debug: Log filtered results when hostel filter is active
+    if (filterHostelId) {
+        console.log('=== HOSTEL FILTER DEBUG ===');
+        console.log('Selected hostel ID:', filterHostelId, 'Type:', typeof filterHostelId);
+        console.log('Total rooms:', rooms.length);
+        console.log('Filtered rooms:', filteredRooms.length);
+        
+        // Test different comparison methods
+        const roomsByHostelId = rooms.filter(room => room.hostel === parseInt(filterHostelId));
+        const roomsByHostelIdString = rooms.filter(room => String(room.hostel) === String(filterHostelId));
+        const roomsByHostelIdDirect = rooms.filter(room => room.hostel === filterHostelId);
+        
+        console.log('Rooms by parseInt:', roomsByHostelId.length);
+        console.log('Rooms by String conversion:', roomsByHostelIdString.length);
+        console.log('Rooms by direct comparison:', roomsByHostelIdDirect.length);
+        
+        // Show all room hostel IDs
+        console.log('All room hostel IDs:', rooms.map(room => ({ id: room.id, hostel: room.hostel, hostel_name: room.hostel_name })));
+        console.log('========================');
+    }
 
     // Get the filtered hostel name if filtering by hostel
     const filteredHostel = filterHostelId ? hostels.find(h => h.id === parseInt(filterHostelId)) : null;
@@ -152,6 +263,8 @@ const RoomsList = () => {
 
     return (
         <div className="container-fluid py-4">
+            {/* Toast Notifications */}
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
             {/* Page Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -195,7 +308,7 @@ const RoomsList = () => {
                             <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Search by room number or hostel..."
+                                placeholder="Search by room ID, description, or hostel..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -204,7 +317,10 @@ const RoomsList = () => {
                             <select
                                 className="form-select"
                                 value={filterHostelId}
-                                onChange={(e) => setFilterHostelId(e.target.value)}
+                                onChange={(e) => {
+                                    console.log('Hostel filter changed to:', e.target.value);
+                                    setFilterHostelId(e.target.value);
+                                }}
                             >
                                 <option value="">All Hostels</option>
                                 {hostels.map((hostel) => (
@@ -222,7 +338,7 @@ const RoomsList = () => {
                             >
                                 <option value="">All Types</option>
                                 <option value="shared">Shared</option>
-                                <option value="single">Single</option>
+                                <option value="ind">Independent</option>
                             </select>
                         </div>
                         <div className="col-md-2">
@@ -233,8 +349,7 @@ const RoomsList = () => {
                             >
                                 <option value="">All Status</option>
                                 <option value="available">Available</option>
-                                <option value="occupied">Occupied</option>
-                                <option value="maintenance">Maintenance</option>
+                                <option value="unavailable">Unavailable</option>
                             </select>
                         </div>
                         <div className="col-md-2">
@@ -256,6 +371,37 @@ const RoomsList = () => {
                 </CardContent>
             </Card>
 
+            {/* Filter Summary */}
+            {(searchTerm || filterType || filterStatus || filterHostelId) && (
+                <div className="mb-3">
+                    <div className="alert alert-info">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Filtered Results:</strong> {filteredRooms.length} of {rooms.length} rooms
+                                {filterHostelId && (
+                                    <span className="ms-2">
+                                        <i className="fas fa-building me-1"></i>
+                                        Hostel: {hostels.find(h => h.id === parseInt(filterHostelId))?.name || 'Unknown'}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterType('');
+                                    setFilterStatus('');
+                                    setFilterHostelId('');
+                                }}
+                            >
+                                <i className="fas fa-times me-1"></i>
+                                Clear All Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Rooms Grid */}
             {filteredRooms.length === 0 ? (
                 <Card>
@@ -268,14 +414,27 @@ const RoomsList = () => {
                                     ? 'Try adjusting your filters'
                                     : 'Add your first room to get started'}
                             </p>
+                            <div className="d-flex gap-2 mt-3">
                             <button
                                 type="button"
-                                className="btn btn-primary mt-3"
+                                    className="btn btn-primary"
                                 onClick={() => { setEditingRoom(null); setShowModal(true); }}
                             >
                                 <i className="fas fa-plus me-2"></i>
                                 Add New Room
                             </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => {
+                                        console.log('Refreshing room data...');
+                                        loadData();
+                                    }}
+                                >
+                                    <i className="fas fa-sync-alt me-2"></i>
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -285,39 +444,99 @@ const RoomsList = () => {
                         <div key={room.id} className="col-lg-4 col-md-6">
                             <Card className="h-100 overflow-hidden hover-shadow" style={{ transition: 'box-shadow 0.3s' }}>
                                 {/* Room Image */}
-                                {room.images && room.images.length > 0 && (
-                                    <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
+                                {(room.media || (room.images && room.images.length > 0)) ? (
+                                    <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
                                         <img
-                                            src={room.images[0]}
-                                            alt={`Room ${room.roomNumber}`}
+                                            src={(() => {
+                                                const mediaUrl = getCloudinaryUrl(room.media);
+                                                const fallbackUrl = room.images && room.images.length > 0 ? room.images[0].secure_url : null;
+                                                const finalUrl = mediaUrl || fallbackUrl;
+                                                
+                                                console.log(`Room ${room.id} image debug:`, {
+                                                    roomMedia: room.media,
+                                                    mediaUrl: mediaUrl,
+                                                    fallbackUrl: fallbackUrl,
+                                                    finalUrl: finalUrl,
+                                                    roomImages: room.images
+                                                });
+                                                
+                                                return finalUrl;
+                                            })()}
+                                            alt={`Room ${room.id}`}
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
                                                 objectFit: 'cover'
                                             }}
+                                            onError={(e) => {
+                                                console.error(`Image failed to load for room ${room.id}:`, e.target.src);
+                                                // Don't show fallback image, just hide the image container
+                                                e.target.style.display = 'none';
+                                            }}
+                                            onLoad={(e) => {
+                                                console.log(`Image loaded successfully for room ${room.id}:`, e.target.src);
+                                            }}
                                         />
-                                        {/* Status Badge */}
-                                        <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
-                                            {getStatusBadge(room.status)}
+                                    
+                                    {/* Available Status Badge - Top Left */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '10px',
+                                        left: '10px'
+                                    }}>
+                                        <span style={{
+                                            background: room.is_available ? 'rgba(40, 167, 69, 0.9)' : 'rgba(220, 53, 69, 0.9)',
+                                            color: 'white',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}>
+                                            <i className={`fas fa-${room.is_available ? 'check-circle' : 'times-circle'}`}></i>
+                                            {room.is_available ? 'Available' : 'Unavailable'}
+                                        </span>
                                         </div>
-                                        {/* Photo Count */}
-                                        {room.images.length > 1 && (
-                                            <div
-                                                style={{
+                                    
+                                    {/* Photo Count Badge - Bottom Right */}
+                                    <div style={{
                                                     position: 'absolute',
                                                     bottom: '10px',
-                                                    right: '10px',
-                                                    background: 'rgba(0,0,0,0.7)',
+                                        right: '10px'
+                                    }}>
+                                        <span style={{
+                                            background: 'rgba(0, 0, 0, 0.7)',
                                                     color: 'white',
                                                     padding: '4px 8px',
                                                     borderRadius: '4px',
-                                                    fontSize: '12px'
-                                                }}
-                                            >
-                                                <i className="fas fa-camera me-1"></i>
-                                                {room.images.length}
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}>
+                                            <i className="fas fa-camera"></i>
+                                            {room.images ? room.images.length + (room.media ? 1 : 0) : (room.media ? 1 : 0)}
+                                        </span>
+                                    </div>
+                                </div>
+                                ) : (
+                                    // No image placeholder
+                                    <div style={{ 
+                                        position: 'relative', 
+                                        height: '200px', 
+                                        background: '#f8f9fa',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#6c757d'
+                                    }}>
+                                        <div className="text-center">
+                                            <i className="fas fa-image fa-3x mb-2"></i>
+                                            <p className="mb-0">No Image</p>
                                             </div>
-                                        )}
                                     </div>
                                 )}
 
@@ -325,30 +544,42 @@ const RoomsList = () => {
                                     {/* Header */}
                                     <div className="d-flex justify-content-between align-items-start mb-2">
                                         <div>
-                                            <h6 className="mb-1 fw-bold">Room {room.roomNumber}</h6>
-                                            <p className="text-muted small mb-0">{room.hostelName}</p>
+                                            <h6 className="mb-1 fw-bold">Room {room.id}</h6>
+                                            <p className="text-muted small mb-0">
+                                                {room.hostel_name || 'Unknown Hostel'}
+                                                {console.log('Room hostel data:', room.hostel, 'hostel_name:', room.hostel_name)}
+                                            </p>
                                         </div>
-                                        <Badge variant="info" className="small">{room.type}</Badge>
+                                        <span style={{
+                                            background: '#007bff',
+                                            color: 'white',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            fontWeight: '500'
+                                        }}>
+                                            {room.room_type?.charAt(0).toUpperCase() + room.room_type?.slice(1) || 'Shared'}
+                                        </span>
                                     </div>
 
                                     {/* Stats */}
                                     <div className="row g-2 mb-3">
                                         <div className="col-4">
                                             <div className="text-center p-2 bg-light rounded">
-                                                <div className="fw-bold">{room.capacity}</div>
-                                                <small className="text-muted" style={{ fontSize: '10px' }}>Capacity</small>
+                                                <div className="fw-bold text-dark fs-5">{room.total_capacity || 0}</div>
+                                                <small className="text-muted" style={{ fontSize: '11px' }}>Capacity</small>
                                             </div>
                                         </div>
                                         <div className="col-4">
                                             <div className="text-center p-2 bg-light rounded">
-                                                <div className="fw-bold text-success">{room.availableBeds}</div>
-                                                <small className="text-muted" style={{ fontSize: '10px' }}>Available</small>
+                                                <div className="fw-bold text-success fs-5">{room.available_capacity || 0}</div>
+                                                <small className="text-muted" style={{ fontSize: '11px' }}>Available</small>
                                             </div>
                                         </div>
                                         <div className="col-4">
                                             <div className="text-center p-2 bg-light rounded">
-                                                <div className="fw-bold" style={{ fontSize: '12px' }}>₨{(room.rent / 1000).toFixed(0)}k</div>
-                                                <small className="text-muted" style={{ fontSize: '10px' }}>Rent</small>
+                                                <div className="fw-bold text-dark fs-5">Rs{Math.round((room.rent || 0) / 1000)}k</div>
+                                                <small className="text-muted" style={{ fontSize: '11px' }}>Rent</small>
                                             </div>
                                         </div>
                                     </div>
@@ -356,13 +587,28 @@ const RoomsList = () => {
                                     {/* Facilities */}
                                     <div className="mb-3">
                                         <div className="d-flex flex-wrap gap-1">
-                                            {room.facilities.slice(0, 3).map((facility, index) => (
-                                                <span key={index} className="badge bg-light text-dark border" style={{ fontSize: '10px' }}>
-                                                    {facility}
+                                            {room.facilities && room.facilities.slice(0, 3).map((facility, index) => (
+                                                <span key={index} style={{
+                                                    background: '#f8f9fa',
+                                                    color: '#495057',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '11px',
+                                                    fontWeight: '500',
+                                                    border: '1px solid #dee2e6'
+                                                }}>
+                                                    {facility.charAt(0).toUpperCase() + facility.slice(1)}
                                                 </span>
                                             ))}
-                                            {room.facilities.length > 3 && (
-                                                <span className="badge bg-secondary" style={{ fontSize: '10px' }}>
+                                            {room.facilities && room.facilities.length > 3 && (
+                                                <span style={{
+                                                    background: '#6c757d',
+                                                    color: 'white',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '11px',
+                                                    fontWeight: '500'
+                                                }}>
                                                     +{room.facilities.length - 3}
                                                 </span>
                                             )}
@@ -374,6 +620,11 @@ const RoomsList = () => {
                                         <button
                                             className="btn btn-sm btn-outline-primary flex-grow-1"
                                             onClick={() => handleEdit(room)}
+                                            style={{
+                                                borderColor: '#6f42c1',
+                                                color: '#6f42c1',
+                                                fontWeight: '500'
+                                            }}
                                         >
                                             <i className="fas fa-edit me-1"></i>
                                             Edit
@@ -381,6 +632,13 @@ const RoomsList = () => {
                                         <button
                                             className="btn btn-sm btn-outline-danger"
                                             onClick={() => handleDelete(room.id)}
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
                                         >
                                             <i className="fas fa-trash"></i>
                                         </button>
@@ -413,7 +671,6 @@ const RoomsList = () => {
                             <div className="modal-body">
                                 <RoomForm
                                     room={editingRoom}
-                                    hostels={hostels}
                                     onSubmit={handleFormSubmit}
                                     onCancel={() => {
                                         setShowModal(false);

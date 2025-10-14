@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    HostelFacilityListView, MyHostelsView, HostelCreateView, 
+    HostelFacilityListView, RoomFacilityListView, MyHostelsView, HostelCreateView, 
     HostelDeleteView, CreateRoomView, MyRoomsView, 
     RoomAvailabilityUpdateView, RoomDeleteView,
     RoomImageUploadView, HostelUpdateView, RoomUpdateView
@@ -13,6 +13,7 @@ router.register(r'create-hostels', HostelCreateView, basename='hostel')
 urlpatterns = [
     path('', include(router.urls)),
     path("hostel-facilities/", HostelFacilityListView.as_view(), name="hostel-facility-list"),
+    path("room-facilities/", RoomFacilityListView.as_view(), name="room-facility-list"),
     path("my-hostels/", MyHostelsView.as_view(), name="my-hostels"),
     path("delete-hostel/<int:pk>/", HostelDeleteView.as_view(), name="delete-hostel"),
     path("create-room/", CreateRoomView.as_view(), name="create-room"),

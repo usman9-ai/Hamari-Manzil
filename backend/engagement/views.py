@@ -19,6 +19,8 @@ from .serializers import (
     HostelStatsSerializer
 )
 from .utils import get_hostels_in_radius
+from django.db.models import Sum, Count, Avg, Q
+from datetime import datetime, timedelta
 
 class HostelSearchView(APIView):
     """
@@ -214,6 +216,12 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         hostel_id = self.request.query_params.get("hostel_id")
         if hostel_id:
             return Review.objects.filter(hostel_id=hostel_id).select_related('user', 'hostel')
+        
+        # If user is an owner, only show reviews for their hostels
+        if self.request.user.role == 'owner':
+            return Review.objects.filter(hostel__owner=self.request.user).select_related('user', 'hostel')
+        
+        # If user is a student, show all reviews
         return Review.objects.all().select_related('user', 'hostel')
 
     def perform_create(self, serializer):
@@ -243,6 +251,45 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         avg_rating = Review.objects.filter(hostel=hostel).aggregate(Avg('rating'))['rating__avg']
         hostel.average_rating = avg_rating
         hostel.save()
+
+
+class OwnerReviewResponseView(APIView):
+    """
+    POST: Add owner response to a review
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, review_id):
+        try:
+            review = Review.objects.get(id=review_id)
+            
+            # Check if the current user owns the hostel
+            if review.hostel.owner != request.user:
+                return Response({
+                    'error': 'Permission denied',
+                    'message': 'You can only respond to reviews for your own hostels'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Update the review with owner response
+            review.owner_response = request.data.get('response', '')
+            review.responded_at = timezone.now()
+            review.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Response added successfully',
+                'data': ReviewSerializer(review).data
+            }, status=status.HTTP_200_OK)
+            
+        except Review.DoesNotExist:
+            return Response({
+                'error': 'Review not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'error': 'Failed to add response',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ---------- Contact & Interaction API ----------
@@ -278,3 +325,325 @@ class InteractionLogCreateView(generics.CreateAPIView):
                 })
 
         serializer.save(user=self.request.user)
+
+
+class OwnerDashboardView(APIView):
+    """
+    Get comprehensive dashboard data for hostel owners
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        
+        # Ensure user is an owner
+        if user.role != 'owner':
+            return Response(
+                {'error': 'Access denied'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get user's hostels
+        user_hostels = Hostel.objects.filter(owner=user)
+        user_hostel_ids = user_hostels.values_list('id', flat=True)
+        
+        # Get user's rooms
+        user_rooms = Room.objects.filter(hostel__in=user_hostel_ids)
+        
+        # Calculate date ranges
+        today = timezone.now().date()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        # Summary Stats
+        total_hostels = user_hostels.count()
+        total_rooms = user_rooms.count()
+        total_available_beds = user_rooms.aggregate(
+            total=Sum('available_capacity')
+        )['total'] or 0
+        
+        verified_hostels = user_hostels.filter(verification_status=True).count()
+        verified_rooms = user_rooms.filter(verification_status=True).count()
+        unverified_count = (total_hostels - verified_hostels) + (total_rooms - verified_rooms)
+        
+        # Engagement Stats - All Time
+        total_views = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type='view'
+        ).count()
+        
+        total_contacts = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type__in=['whatsapp', 'call']
+        ).count()
+        
+        total_favorites = Favorite.objects.filter(
+            hostel__in=user_hostel_ids
+        ).count()
+        
+        # Reviews
+        user_reviews = Review.objects.filter(hostel__in=user_hostel_ids)
+        total_reviews = user_reviews.count()
+        avg_rating = user_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+        pending_reviews = user_reviews.filter(owner_response__isnull=True).count()
+        
+        # This Week Stats
+        this_week_views = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type='view',
+            created_at__gte=week_ago
+        ).count()
+        
+        this_week_contacts = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type__in=['whatsapp', 'call'],
+            created_at__gte=week_ago
+        ).count()
+        
+        this_week_favorites = Favorite.objects.filter(
+            hostel__in=user_hostel_ids,
+            created_at__gte=week_ago
+        ).count()
+        
+        this_week_reviews = user_reviews.filter(created_at__gte=week_ago).count()
+        
+        # This Month Stats
+        this_month_views = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type='view',
+            created_at__gte=month_ago
+        ).count()
+        
+        this_month_contacts = InteractionLog.objects.filter(
+            hostel__in=user_hostel_ids,
+            interaction_type__in=['whatsapp', 'call'],
+            created_at__gte=month_ago
+        ).count()
+        
+        this_month_favorites = Favorite.objects.filter(
+            hostel__in=user_hostel_ids,
+            created_at__gte=month_ago
+        ).count()
+        
+        this_month_reviews = user_reviews.filter(created_at__gte=month_ago).count()
+        
+        # Recent Activity (last 7 days)
+        recent_interactions = []
+        for i in range(7):
+            date = today - timedelta(days=i)
+            day_views = InteractionLog.objects.filter(
+                hostel__in=user_hostel_ids,
+                interaction_type='view',
+                created_at__date=date
+            ).count()
+            
+            day_contacts = InteractionLog.objects.filter(
+                hostel__in=user_hostel_ids,
+                interaction_type__in=['whatsapp', 'call'],
+                created_at__date=date
+            ).count()
+            
+            day_favorites = Favorite.objects.filter(
+                hostel__in=user_hostel_ids,
+                created_at__date=date
+            ).count()
+            
+            recent_interactions.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'views': day_views,
+                'contacts': day_contacts,
+                'favorites': day_favorites
+            })
+        
+        # Top Performing Hostels
+        top_hostels = []
+        for hostel in user_hostels:
+            hostel_views = InteractionLog.objects.filter(
+                hostel=hostel,
+                interaction_type='view'
+            ).count()
+            
+            hostel_contacts = InteractionLog.objects.filter(
+                hostel=hostel,
+                interaction_type__in=['whatsapp', 'call']
+            ).count()
+            
+            hostel_reviews = Review.objects.filter(hostel=hostel)
+            hostel_avg_rating = hostel_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+            conversion_rate = (hostel_contacts / hostel_views * 100) if hostel_views > 0 else 0
+            
+            top_hostels.append({
+                'id': hostel.id,
+                'name': hostel.name,
+                'views': hostel_views,
+                'contacts': hostel_contacts,
+                'conversion_rate': round(conversion_rate, 1),
+                'avg_rating': round(hostel_avg_rating, 1)
+            })
+        
+        # Sort by views and take top 5
+        top_hostels = sorted(top_hostels, key=lambda x: x['views'], reverse=True)[:5]
+        
+        # Verification Status
+        user_verified = user.verification_status
+        hostels_pending = total_hostels - verified_hostels
+        rooms_pending = total_rooms - verified_rooms
+        
+        # Action Items
+        rooms_low_availability = user_rooms.filter(available_capacity__lt=2).count()
+        
+        return Response({
+            # Summary Stats
+            'total_hostels': total_hostels,
+            'total_rooms': total_rooms,
+            'total_available_beds': total_available_beds,
+            'verified_hostels': verified_hostels,
+            'verified_rooms': verified_rooms,
+            'unverified_count': unverified_count,
+            
+            # Engagement Stats
+            'total_views': total_views,
+            'total_contacts': total_contacts,
+            'total_favorites': total_favorites,
+            'total_reviews': total_reviews,
+            'avg_rating': round(avg_rating, 1),
+            'pending_reviews': pending_reviews,
+            
+            # This Week Stats
+            'this_week': {
+                'views': this_week_views,
+                'contacts': this_week_contacts,
+                'favorites': this_week_favorites,
+                'reviews': this_week_reviews
+            },
+            
+            # This Month Stats
+            'this_month': {
+                'views': this_month_views,
+                'contacts': this_month_contacts,
+                'favorites': this_month_favorites,
+                'reviews': this_month_reviews
+            },
+            
+            # Recent Activity
+            'recent_interactions': recent_interactions,
+            
+            # Top Performing Hostels
+            'top_hostels': top_hostels,
+            
+            # Verification Status
+            'verification_status': {
+                'user_verified': user_verified,
+                'hostels_verified': verified_hostels,
+                'hostels_pending': hostels_pending,
+                'rooms_verified': verified_rooms,
+                'rooms_pending': rooms_pending
+            },
+            
+            # Action Items
+            'action_items': {
+                'pending_reviews': pending_reviews,
+                'unverified_hostels': hostels_pending,
+                'unverified_rooms': rooms_pending,
+                'rooms_low_availability': rooms_low_availability
+            }
+        })
+
+
+class HostelAnalyticsView(APIView):
+    """
+    Get detailed analytics for a specific hostel
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, hostel_id):
+        user = request.user
+        
+        # Ensure user is an owner and owns this hostel
+        if user.role != 'owner':
+            return Response(
+                {'error': 'Access denied'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            hostel = Hostel.objects.get(id=hostel_id, owner=user)
+        except Hostel.DoesNotExist:
+            return Response(
+                {'error': 'Hostel not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get analytics data for this hostel
+        today = timezone.now().date()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        # All time stats
+        total_views = InteractionLog.objects.filter(
+            hostel=hostel,
+            interaction_type='view'
+        ).count()
+        
+        total_contacts = InteractionLog.objects.filter(
+            hostel=hostel,
+            interaction_type__in=['whatsapp', 'call']
+        ).count()
+        
+        total_favorites = Favorite.objects.filter(hostel=hostel).count()
+        
+        # Reviews
+        reviews = Review.objects.filter(hostel=hostel)
+        total_reviews = reviews.count()
+        avg_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+        pending_reviews = reviews.filter(owner_response__isnull=True).count()
+        
+        # Recent activity (last 30 days)
+        recent_activity = []
+        for i in range(30):
+            date = today - timedelta(days=i)
+            day_views = InteractionLog.objects.filter(
+                hostel=hostel,
+                interaction_type='view',
+                created_at__date=date
+            ).count()
+            
+            day_contacts = InteractionLog.objects.filter(
+                hostel=hostel,
+                interaction_type__in=['whatsapp', 'call'],
+                created_at__date=date
+            ).count()
+            
+            day_favorites = Favorite.objects.filter(
+                hostel=hostel,
+                created_at__date=date
+            ).count()
+            
+            recent_activity.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'views': day_views,
+                'contacts': day_contacts,
+                'favorites': day_favorites
+            })
+        
+        # Conversion rate
+        conversion_rate = (total_contacts / total_views * 100) if total_views > 0 else 0
+        
+        return Response({
+            'hostel': {
+                'id': hostel.id,
+                'name': hostel.name,
+                'city': hostel.city,
+                'verification_status': hostel.verification_status
+            },
+            'analytics': {
+                'total_views': total_views,
+                'total_contacts': total_contacts,
+                'total_favorites': total_favorites,
+                'conversion_rate': round(conversion_rate, 1),
+                'total_reviews': total_reviews,
+                'avg_rating': round(avg_rating, 1),
+                'pending_reviews': pending_reviews
+            },
+            'recent_activity': recent_activity
+        })

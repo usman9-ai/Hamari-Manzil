@@ -14,6 +14,9 @@ from rest_framework import serializers
 from .models import Room, Hostel
 
 class RoomSerializer(serializers.ModelSerializer):
+    images = RoomImageSerializer(many=True, read_only=True)
+    hostel_name = serializers.CharField(source="hostel.name", read_only=True)
+    
     def validate(self, data):
         # Validate capacity
         if 'available_capacity' in data and 'total_capacity' in data:
@@ -54,6 +57,7 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'hostel',
+            'hostel_name',
             'media',
             'room_type',
             'total_capacity',
@@ -64,7 +68,8 @@ class RoomSerializer(serializers.ModelSerializer):
             'description',
             'is_available',
             'verification_status',
-            'created_at'
+            'created_at',
+            'images'
         ]
         read_only_fields = ['id', 'created_at', 'verification_status']
 
@@ -144,6 +149,7 @@ class HostelSerializer(serializers.ModelSerializer):
             "id",
             "owner",
             "name",
+            "media",  # ✅ Added media field
             "city",
             "latitude",
             "longitude",
@@ -151,6 +157,7 @@ class HostelSerializer(serializers.ModelSerializer):
             "gender",
             "total_rooms",
             "description",
+            "verification_status",  # ✅ Added verification_status field
             "created_at",
             "rooms",
         ]

@@ -6,6 +6,9 @@ import './App.css';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import ManageHostels from './pages/owner/ManageHostels';
@@ -18,12 +21,15 @@ import HostelsList from './pages/hostel/HostelsList';
 import RoomsList from './pages/hostel/RoomsList';
 import ReviewsReports from './pages/hostel/ReviewsReports';
 import Verification from './pages/hostel/Verification';
+import UserVerification from './pages/hostel/UserVerification';
+import RoomVerification from './pages/hostel/RoomVerification';
+import VerificationDashboard from './pages/hostel/VerificationDashboard';
 import Profile from './pages/hostel/Profile';
 
 // Auth guard component
 const ProtectedRoute = ({ children, requiredRole }) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -44,22 +50,25 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-email/:uidb64/:token" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:uidb64/:token" element={<ResetPasswordPage />} />
 
         {/* Student routes */}
         <Route
           path="/student/dashboard"
           element={
-            // <ProtectedRoute requiredRole="student">
-            <StudentDashboard />
-            // </ProtectedRoute>
+            <ProtectedRoute requiredRole="student">
+              <StudentDashboard />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/student/bookings"
           element={
-            // <ProtectedRoute requiredRole="student">
-            <Bookings />
-            // </ProtectedRoute>
+            <ProtectedRoute requiredRole="student">
+              <Bookings />
+            </ProtectedRoute>
           }
         />
 
@@ -67,17 +76,17 @@ function App() {
         <Route
           path="/owner/dashboard"
           element={
-            // <ProtectedRoute requiredRole="owner">
-            <OwnerDashboard />
-            // </ProtectedRoute>
+            <ProtectedRoute requiredRole="owner">
+              <OwnerDashboard />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/owner/hostels"
           element={
-            // <ProtectedRoute requiredRole="owner">
-            <ManageHostels />
-            // </ProtectedRoute>
+            <ProtectedRoute requiredRole="owner">
+              <ManageHostels />
+            </ProtectedRoute>
           }
         />
 
@@ -85,17 +94,22 @@ function App() {
         <Route
           path="/hostel/*"
           element={
-            <HostelLayout>
-              <Routes>
-                <Route path="dashboard" element={<HostelDashboard />} />
-                <Route path="hostels" element={<HostelsList />} />
-                <Route path="rooms" element={<RoomsList />} />
-                <Route path="reviews" element={<ReviewsReports />} />
-                <Route path="verification" element={<Verification />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="*" element={<Navigate to="/hostel/dashboard" replace />} />
-              </Routes>
-            </HostelLayout>
+            <ProtectedRoute>
+              <HostelLayout>
+                <Routes>
+                  <Route path="dashboard" element={<HostelDashboard />} />
+                  <Route path="hostels" element={<HostelsList />} />
+                  <Route path="rooms" element={<RoomsList />} />
+                  <Route path="reviews" element={<ReviewsReports />} />
+                  <Route path="verification" element={<VerificationDashboard />} />
+                  <Route path="hostel-verification" element={<Verification />} />
+                  <Route path="user-verification" element={<UserVerification />} />
+                  <Route path="room-verification" element={<RoomVerification />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="*" element={<Navigate to="/hostel/dashboard" replace />} />
+                </Routes>
+              </HostelLayout>
+            </ProtectedRoute>
           }
         />
 
@@ -103,9 +117,9 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            // <ProtectedRoute>
-            <DashboardRedirect />
-            // </ProtectedRoute>
+            <ProtectedRoute>
+              <DashboardRedirect />
+            </ProtectedRoute>
           }
         />
 

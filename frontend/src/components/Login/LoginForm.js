@@ -20,25 +20,14 @@ const LoginForm = ({ onSubmit, loading = false }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      const response = await fetch('/api/users/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-      const data = await response.json();
-      if (response.ok) {
-        onSubmit(data);
-      } else {
-        setErrors(data.errors || { general: 'Login failed' });
-      }
-    } catch (error) {
-      setErrors({ general: 'Network error. Please try again.' });
-    }
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Call parent onSubmit with form data and error setter
+    onSubmit(formData, setErrors);
   };
 
   return (

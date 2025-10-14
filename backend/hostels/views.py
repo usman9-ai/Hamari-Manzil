@@ -48,7 +48,15 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework import generics, permissions
 from .models import Hostel, Room
 from .serializers import HostelSerializer, RoomSerializer
+from .models import ALLOWED_FACILITIES
 
+
+# -----------------------------
+# Room Facilities API (for checkboxes)
+# -----------------------------
+class RoomFacilityListView(APIView):
+    def get(self, request):
+        return Response(ALLOWED_FACILITIES, status=status.HTTP_200_OK)
 
 # -----------------------------
 # Facility List API (for checkboxes)
@@ -70,6 +78,13 @@ class HostelCreateView(viewsets.ModelViewSet):
         user = self.request.user
         if user.role != "owner":
             raise PermissionDenied("Only owners can create hostels.")
+        
+        # Debug: Log the data being received
+        print("=== HOSTEL CREATION DEBUG ===")
+        print("Request data:", self.request.data)
+        print("Media field value:", self.request.data.get('media'))
+        print("=============================")
+        
         serializer.save(owner=user)
 
 
@@ -145,19 +160,45 @@ class CreateRoomView(APIView):
         user = request.user
         hostel_id = request.data.get("hostel")
 
+        # Debug: Log the data being received
+        print("=== ROOM CREATION DEBUG ===")
+        print("Request data:", request.data)
+        print("User:", user.username, "Role:", user.role)
+        print("Hostel ID:", hostel_id)
+        print("=============================")
+
         if user.role != "owner":
             raise PermissionDenied("Only owners can create room listings.")
 
         try:
             hostel = Hostel.objects.get(id=hostel_id, owner=user)
+            print("Found hostel:", hostel.name)
         except Hostel.DoesNotExist:
+            print("Hostel not found or doesn't belong to user")
             raise PermissionDenied("You can only add rooms to your own hostels.")
 
         serializer = RoomSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
-            serializer.save(hostel=hostel)  # ✅ Explicitly attach the correct hostel
+            print("Serializer is valid, saving room...")
+            room = serializer.save(hostel=hostel)  # ✅ Explicitly attach the correct hostel
+            
+            # Handle additional images
+            additional_images = request.data.get('additional_images', [])
+            if additional_images:
+                print(f"Processing {len(additional_images)} additional images...")
+                for image_data in additional_images:
+                    if isinstance(image_data, dict) and 'public_id' in image_data:
+                        # Create RoomImage object
+                        room_image = RoomImage.objects.create(
+                            room=room,
+                            image=image_data['public_id']  # Store Cloudinary public_id
+                        )
+                        print(f"Created room image: {room_image.id}")
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            print("Serializer errors:", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ---------------------------

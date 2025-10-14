@@ -65,6 +65,8 @@ class Review(models.Model):
         help_text="Rating from 1 to 5"
     )
     comment = models.TextField()
+    owner_response = models.TextField(blank=True, null=True, help_text="Hostel owner's response to the review")
+    responded_at = models.DateTimeField(blank=True, null=True, help_text="When the owner responded")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -10,6 +10,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.http import HttpResponse
+from django.conf import settings
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import (
     UserRegistrationSerializer, UserProfileSerializer,
@@ -27,15 +28,14 @@ def send_verification_email(user, request):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
 
-    verification_link = request.build_absolute_uri(
-        reverse("verify-email", kwargs={"uidb64": uid, "token": token})
-    )
+    # Use frontend URL so user gets a nice React page
+    verification_link = f"{settings.FRONTEND_URL}/verify-email/{uid}/{token}/"
 
     subject = "Verify your email - Hamari Manzil"
     message = (
         f"Hi {user.username},\n\n"
         f"Please click the link below to verify your email:\n{verification_link}\n\n"
-        f"If you didn’t create this account, please ignore this email."
+        f"If you didn't create this account, please ignore this email."
     )
 
     send_mail(subject, message, None, [user.email], fail_silently=False)
@@ -207,9 +207,8 @@ class PasswordResetRequestView(APIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        reset_link = request.build_absolute_uri(
-            reverse("password-reset-confirm", kwargs={"uidb64": uid, "token": token})
-        )
+        # Use frontend URL so user can reset password in React app
+        reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
 
         subject = "Reset your password - Hamari Manzil"
         message = f"Click below to reset your password:\n\n{reset_link}"

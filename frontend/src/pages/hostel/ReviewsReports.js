@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getReviews, respondToReview } from '../../actions/hostelActions';
+import { fetchReviews, handleRespondToReview as respondToReviewService } from '../../services/engagementServices';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import ToastContainer from '../../components/ui/ToastContainer';
+import useToast from '../../hooks/useToast';
 
 const ReviewsReports = () => {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [responseText, setResponseText] = useState({});
     const [respondingTo, setRespondingTo] = useState(null);
+    const { toasts, showSuccess, showError, removeToast } = useToast();
 
     useEffect(() => {
         loadData();
@@ -16,10 +19,16 @@ const ReviewsReports = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const reviewsRes = await getReviews();
-            if (reviewsRes.success) setReviews(reviewsRes.data);
+            // Fetch all reviews - the backend will filter by owner's hostels
+            const reviewsRes = await fetchReviews();
+            if (reviewsRes.success) {
+                setReviews(reviewsRes.data);
+            } else {
+                showError('Error', reviewsRes.message || 'Failed to load reviews');
+            }
         } catch (error) {
             console.error('Error loading data:', error);
+            showError('Error', 'Failed to load reviews');
         } finally {
             setLoading(false);
         }
@@ -28,23 +37,23 @@ const ReviewsReports = () => {
     const handleRespondToReview = async (reviewId) => {
         const response = responseText[reviewId];
         if (!response || !response.trim()) {
-            alert('Please enter a response');
+            showError('Error', 'Please enter a response');
             return;
         }
 
         try {
-            const result = await respondToReview(reviewId, response);
+            const result = await respondToReviewService(reviewId, response);
             if (result.success) {
-                alert('Response added successfully');
+                showSuccess('Success', result.message);
                 setRespondingTo(null);
                 setResponseText(prev => ({ ...prev, [reviewId]: '' }));
-                loadData(); // Reload data
+                loadData(); // Reload data to show the response
             } else {
-                alert(result.message || 'Failed to add response');
+                showError('Error', result.message);
             }
         } catch (error) {
             console.error('Error responding to review:', error);
-            alert('An error occurred');
+            showError('Error', 'Failed to add response');
         }
     };
 
@@ -77,6 +86,8 @@ const ReviewsReports = () => {
 
     return (
         <div className="container-fluid py-4">
+            {/* Toast Notifications */}
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
             {/* Page Header */}
             <div className="mb-4">
                 <h1 className="h3 fw-bold mb-1">Reviews</h1>
@@ -119,14 +130,14 @@ const ReviewsReports = () => {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="col-md-4">
+                                <div className="col-md-4">
                     <Card>
                         <CardContent className="p-4">
                             <div className="d-flex justify-content-between align-items-start">
                                 <div>
                                     <p className="text-muted small mb-1">Pending Responses</p>
                                     <h2 className="h3 fw-bold mb-0">
-                                        {reviews.filter(r => !r.ownerResponse).length}
+                                        {reviews.filter(r => !r.owner_response).length}
                                     </h2>
                                 </div>
                                 <div className="bg-info bg-opacity-10 rounded p-2">
@@ -159,24 +170,24 @@ const ReviewsReports = () => {
                                                 {/* Review Header */}
                                                 <div className="d-flex justify-content-between align-items-start mb-3">
                                                     <div>
-                                                        <h5 className="mb-1">{review.studentName}</h5>
+                                                        <h5 className="mb-1">{review.user || 'Anonymous'}</h5>
                                                         <div className="text-muted small">
                                                             {renderStars(review.rating)}
-                                                            <span className="ms-2">• {review.createdAt}</span>
+                                                            <span className="ms-2">• {new Date(review.created_at).toLocaleDateString()}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Hostel Name */}
                                                 <div className="mb-2">
-                                                    <Badge variant="primary">{review.hostelName}</Badge>
+                                                    <Badge variant="primary">{review.hostel_name}</Badge>
                                                 </div>
 
                                                 {/* Review Comment */}
                                                 <p className="text-dark mb-3">{review.comment}</p>
 
                                                 {/* Owner Response */}
-                                                {review.ownerResponse && (
+                                                {review.owner_response && (
                                                     <div className="bg-light rounded p-3 mb-3">
                                                         <div className="d-flex align-items-start">
                                                             <div className="bg-primary rounded-circle p-2 me-2">
@@ -184,15 +195,15 @@ const ReviewsReports = () => {
                                                             </div>
                                                             <div className="flex-grow-1">
                                                                 <div className="fw-semibold mb-1">Your Response</div>
-                                                                <p className="mb-1">{review.ownerResponse}</p>
-                                                                <small className="text-muted">{review.respondedAt}</small>
+                                                                <p className="mb-1">{review.owner_response}</p>
+                                                                <small className="text-muted">{review.responded_at}</small>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 )}
 
                                                 {/* Response Form */}
-                                                {!review.ownerResponse && respondingTo === review.id && (
+                                                {!review.owner_response && respondingTo === review.id && (
                                                     <div className="mt-3">
                                                         <textarea
                                                             className="form-control mb-2"
@@ -231,7 +242,7 @@ const ReviewsReports = () => {
                                                 )}
 
                                                 {/* Respond Button */}
-                                                {!review.ownerResponse && respondingTo !== review.id && (
+                                                {!review.owner_response && respondingTo !== review.id && (
                                                     <button
                                                         type="button"
                                                         className="btn btn-sm btn-outline-primary"

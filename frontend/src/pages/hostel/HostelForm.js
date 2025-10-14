@@ -1,29 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { hostelFacilitiesOptions } from '../../services/hostelDummyData';
 import LocationPickerModal from '../../components/hostel/LocationPickerModal';
 
 const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
     const [formData, setFormData] = useState({
         name: '',
-        city: '',
-        address: '',
+        city: 'karachi',
         description: '',
-        phone: '',
-        email: '',
         gender: 'male',
-        totalRooms: 0,
-        availableRooms: 0,
-        facilities: [],
+        total_rooms: 0,
         latitude: '',
         longitude: '',
-        mapLocation: '',
-        images: [],
-        videoUrl: '',
+        map_location: '',
+        media: null,
         ...hostel
     });
 
-    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
+    const [mediaPreview, setMediaPreview] = useState(hostel?.media || null);
     const [showLocationModal, setShowLocationModal] = useState(false);
+
+    const cityOptions = [
+        { value: 'karachi', label: 'Karachi' },
+        { value: 'lahore', label: 'Lahore' },
+        { value: 'islamabad', label: 'Islamabad' },
+        { value: 'multan', label: 'Multan' },
+        { value: 'bahawalpur', label: 'Bahawalpur' },
+        { value: 'rawalpindi', label: 'Rawalpindi' },
+        { value: 'faisalabad', label: 'Faisalabad' },
+        { value: 'peshawar', label: 'Peshawar' },
+        { value: 'quetta', label: 'Quetta' },
+    ];
 
     useEffect(() => {
         // Load Cloudinary upload widget script
@@ -36,62 +42,61 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
     }, []);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        if (type === 'checkbox') {
-            // Handle facility checkboxes
-            if (checked) {
-                setFormData(prev => ({
-                    ...prev,
-                    facilities: [...prev.facilities, value]
-                }));
-            } else {
-                setFormData(prev => ({
-                    ...prev,
-                    facilities: prev.facilities.filter(f => f !== value)
-                }));
-            }
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
-    const handleImageUpload = () => {
+    const handleMediaUpload = () => {
         if (!window.cloudinary) {
-            alert('Cloudinary widget not loaded yet. Please try again.');
+            // We'll pass this error up to the parent component to show as toast
+            console.error('Cloudinary widget not loaded yet');
             return;
         }
 
-        setUploadingImage(true);
+        setUploadingMedia(true);
 
-        // Open Cloudinary upload widget
-        // You'll need to replace 'YOUR_CLOUD_NAME' with your actual Cloudinary cloud name
-        // And create an unsigned upload preset in your Cloudinary dashboard
         const widget = window.cloudinary.createUploadWidget(
             {
-                cloudName: 'musa-bukhari', // Replace with your cloud name
-                uploadPreset: 'hamariManzil', // Replace with your upload preset
+                cloudName: 'musa-bukhari',
+                uploadPreset: 'hamariManzil',
                 sources: ['local', 'url', 'camera'],
-                multiple: true,
-                maxFiles: 5,
+                multiple: false, // Only one image for hostel
                 folder: 'hostels',
                 clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
                 maxFileSize: 5000000, // 5MB
                 theme: 'minimal',
+                // Add these options to ensure proper upload
+                cropping: false,
+                showAdvancedOptions: false,
+                showSkipCropButton: false,
+                showPoweredBy: false,
             },
             (error, result) => {
-                if (!error && result && result.event === 'success') {
+                console.log('Cloudinary upload result:', { error, result });
+                
+                if (error) {
+                    console.error('Cloudinary upload error:', error);
+                    setUploadingMedia(false);
+                    return;
+                }
+                
+                if (result && result.event === 'success') {
+                    const publicId = result.info.public_id;
                     const imageUrl = result.info.secure_url;
+                    console.log('Upload successful:', { publicId, imageUrl });
+                    
                     setFormData(prev => ({
                         ...prev,
-                        images: [...prev.images, imageUrl]
+                        media: publicId // Store public_id for backend
                     }));
+                    setMediaPreview(imageUrl); // Store URL for preview
                 }
 
                 if (result && result.event === 'close') {
-                    setUploadingImage(false);
+                    setUploadingMedia(false);
                 }
             }
         );
@@ -99,20 +104,20 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
         widget.open();
     };
 
-    const removeImage = (index) => {
+    const removeMedia = () => {
         setFormData(prev => ({
             ...prev,
-            images: prev.images.filter((_, i) => i !== index)
+            media: null
         }));
+        setMediaPreview(null);
     };
 
     const handleLocationSelect = (locationData) => {
         setFormData(prev => ({
             ...prev,
-            address: locationData.address,
             latitude: locationData.latitude,
             longitude: locationData.longitude,
-            mapLocation: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`
+            map_location: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`
         }));
     };
 
@@ -143,26 +148,19 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
 
                 <div className="col-md-6">
                     <label className="form-label">City <span className="text-danger">*</span></label>
-                    <input
-                        type="text"
+                    <select
                         name="city"
-                        className="form-control"
+                        className="form-select"
                         value={formData.city}
                         onChange={handleChange}
                         required
-                    />
-                </div>
-
-                <div className="col-12">
-                    <label className="form-label">Address <span className="text-danger">*</span></label>
-                    <input
-                        type="text"
-                        name="address"
-                        className="form-control"
-                        value={formData.address}
-                        onChange={handleChange}
-                        required
-                    />
+                    >
+                        {cityOptions.map(city => (
+                            <option key={city.value} value={city.value}>
+                                {city.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="col-12">
@@ -176,40 +174,12 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                     ></textarea>
                 </div>
 
-                {/* Contact Information */}
-                <div className="col-12 mt-4">
-                    <h6 className="fw-bold mb-3 text-primary">Contact Information</h6>
-                </div>
-
-                <div className="col-md-6">
-                    <label className="form-label">Phone <span className="text-danger">*</span></label>
-                    <input
-                        type="tel"
-                        name="phone"
-                        className="form-control"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div className="col-md-6">
-                    <label className="form-label">Email</label>
-                    <input
-                        type="email"
-                        name="email"
-                        className="form-control"
-                        value={formData.email}
-                        onChange={handleChange}
-                    />
-                </div>
-
                 {/* Hostel Details */}
                 <div className="col-12 mt-4">
                     <h6 className="fw-bold mb-3 text-primary">Hostel Details</h6>
                 </div>
 
-                <div className="col-md-4">
+                <div className="col-md-6">
                     <label className="form-label">Gender <span className="text-danger">*</span></label>
                     <select
                         name="gender"
@@ -220,56 +190,22 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                     >
                         <option value="male">Male</option>
                         <option value="female">Female</option>
-                        <option value="co-ed">Co-ed</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
 
-                <div className="col-md-4">
-                    <label className="form-label">Total Rooms</label>
+                <div className="col-md-6">
+                    <label className="form-label">Total Rooms <span className="text-danger">*</span></label>
                     <input
                         type="number"
-                        name="totalRooms"
+                        name="total_rooms"
                         className="form-control"
-                        value={formData.totalRooms}
+                        value={formData.total_rooms}
                         onChange={handleChange}
                         min="0"
+                        required
                     />
-                </div>
-
-                <div className="col-md-4">
-                    <label className="form-label">Available Rooms</label>
-                    <input
-                        type="number"
-                        name="availableRooms"
-                        className="form-control"
-                        value={formData.availableRooms}
-                        onChange={handleChange}
-                        min="0"
-                    />
-                </div>
-
-                {/* Facilities */}
-                <div className="col-12 mt-4">
-                    <h6 className="fw-bold mb-3 text-primary">Facilities</h6>
-                    <div className="row g-2">
-                        {hostelFacilitiesOptions.map((facility) => (
-                            <div key={facility} className="col-md-4">
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        value={facility}
-                                        id={`facility-${facility}`}
-                                        checked={formData.facilities.includes(facility)}
-                                        onChange={handleChange}
-                                    />
-                                    <label className="form-check-label" htmlFor={`facility-${facility}`}>
-                                        {facility}
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <small className="text-muted">Number of rooms in your hostel</small>
                 </div>
 
                 {/* Location */}
@@ -298,10 +234,6 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                                     Location Set
                                 </h6>
                                 <div className="row g-2">
-                                    <div className="col-12">
-                                        <strong>Address:</strong>
-                                        <p className="mb-0 text-muted">{formData.address || 'N/A'}</p>
-                                    </div>
                                     <div className="col-md-6">
                                         <strong>Latitude:</strong>
                                         <p className="mb-0 text-muted">{formData.latitude}</p>
@@ -310,10 +242,10 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                                         <strong>Longitude:</strong>
                                         <p className="mb-0 text-muted">{formData.longitude}</p>
                                     </div>
-                                    {formData.mapLocation && (
+                                    {formData.map_location && (
                                         <div className="col-12 mt-2">
                                             <a
-                                                href={formData.mapLocation}
+                                                href={formData.map_location}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="btn btn-sm btn-outline-primary"
@@ -331,59 +263,43 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
 
                 {/* Media */}
                 <div className="col-12 mt-4">
-                    <h6 className="fw-bold mb-3 text-primary">Images & Media</h6>
+                    <h6 className="fw-bold mb-3 text-primary">Hostel Image</h6>
                 </div>
 
                 <div className="col-12">
-                    <label className="form-label">Images</label>
+                    <label className="form-label">Main Image</label>
                     <button
                         type="button"
                         className="btn btn-outline-primary"
-                        onClick={handleImageUpload}
-                        disabled={uploadingImage}
+                        onClick={handleMediaUpload}
+                        disabled={uploadingMedia}
                     >
                         <i className="fas fa-cloud-upload-alt me-2"></i>
-                        {uploadingImage ? 'Uploading...' : 'Upload Images via Cloudinary'}
+                        {uploadingMedia ? 'Uploading...' : 'Upload Hostel Image via Cloudinary'}
                     </button>
                     <small className="text-muted d-block mt-1">
-                        You can upload multiple images. Click to open Cloudinary widget.
+                        Upload a main image for your hostel (max 5MB, JPG/PNG)
                     </small>
 
-                    {formData.images.length > 0 && (
-                        <div className="row g-2 mt-2">
-                            {formData.images.map((image, index) => (
-                                <div key={index} className="col-md-3">
-                                    <div className="position-relative">
-                                        <img
-                                            src={image}
-                                            alt={`Hostel ${index + 1}`}
-                                            className="img-fluid rounded"
-                                            style={{ width: '100%', height: '150px', objectFit: 'cover' }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                                            onClick={() => removeImage(index)}
-                                        >
-                                            <i className="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                    {mediaPreview && (
+                        <div className="mt-3">
+                            <div className="position-relative d-inline-block">
+                                <img
+                                    src={mediaPreview}
+                                    alt="Hostel"
+                                    className="img-fluid rounded"
+                                    style={{ maxWidth: '300px', maxHeight: '200px', objectFit: 'cover' }}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                                    onClick={removeMedia}
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                     )}
-                </div>
-
-                <div className="col-12">
-                    <label className="form-label">Video URL (YouTube/Vimeo)</label>
-                    <input
-                        type="url"
-                        name="videoUrl"
-                        className="form-control"
-                        value={formData.videoUrl}
-                        onChange={handleChange}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                    />
                 </div>
             </div>
 
@@ -422,7 +338,6 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                 onHide={() => setShowLocationModal(false)}
                 onLocationSelect={handleLocationSelect}
                 initialLocation={{
-                    address: formData.address,
                     lat: parseFloat(formData.latitude) || null,
                     lng: parseFloat(formData.longitude) || null
                 }}

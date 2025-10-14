@@ -1,56 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats, getHostels } from '../../actions/hostelActions';
+import { fetchOwnerDashboard } from '../../services/dashboardServices';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import MetricCard from '../../components/dashboard/MetricCard';
+import ActivityChart from '../../components/dashboard/ActivityChart';
+import TopHostelsCard from '../../components/dashboard/TopHostelsCard';
+import ActionItemsCard from '../../components/dashboard/ActionItemsCard';
+import VerificationStatus from '../../components/verification/VerificationStatus';
+import ToastContainer from '../../components/ui/ToastContainer';
+import useToast from '../../hooks/useToast';
 
 const Dashboard = () => {
-    const [stats, setStats] = useState(null);
+    const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [hostels, setHostels] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
     const navigate = useNavigate();
+    const { toasts, showError, removeToast } = useToast();
 
     useEffect(() => {
         loadDashboardData();
     }, []);
 
-    const loadDashboardData = async () => {
+    const loadDashboardData = async (isRefresh = false) => {
         try {
-            const [statsResult, hostelsResult] = await Promise.all([
-                getDashboardStats(),
-                getHostels()
-            ]);
-
-            if (statsResult.success) {
-                setStats(statsResult.data);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
             }
-            if (hostelsResult.success) {
-                setHostels(hostelsResult.data);
+
+            const result = await fetchOwnerDashboard();
+            
+            if (result.success) {
+                setDashboardData(result.data);
+            } else {
+                showError('Error', result.message || 'Failed to load dashboard data');
             }
         } catch (error) {
             console.error('Error loading dashboard:', error);
+            showError('Error', 'Failed to load dashboard data');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    const getStatusBadge = (status) => {
-        const variants = {
-            pending: 'warning',
-            approved: 'success',
-            rejected: 'danger',
-        };
-        return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+    const handleRefresh = () => {
+        loadDashboardData(true);
+    };
+
+    const handleActionClick = (path) => {
+        navigate(path);
+    };
+
+    const handleViewHostel = (hostelId) => {
+        navigate(`/hostel/hostels`);
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-content-center h-100">
-                <div className="text-center">
-                    <div className="spinner-border text-primary mb-3" role="status">
-                        <span className="visually-hidden">Loading...</span>
+            <div className="container-fluid py-4">
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
+                <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+                    <div className="text-center">
+                        <div className="spinner-border text-primary mb-3"></div>
+                        <p className="text-muted">Loading dashboard...</p>
                     </div>
-                    <p className="text-muted">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!dashboardData) {
+        return (
+            <div className="container-fluid py-4">
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
+                <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+                    <div className="text-center">
+                        <i className="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 className="text-warning mb-2">Unable to load dashboard</h5>
+                        <p className="text-muted mb-3">There was an error loading your dashboard data.</p>
+                        <Button variant="primary" onClick={handleRefresh}>
+                            <i className="fas fa-sync-alt me-2"></i>
+                            Try Again
+                        </Button>
+                    </div>
                 </div>
             </div>
         );
@@ -58,232 +94,189 @@ const Dashboard = () => {
 
     return (
         <div className="container-fluid py-4">
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
+            
             {/* Page Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="h3 fw-bold mb-1">Dashboard</h1>
                     <p className="text-muted">Welcome back! Here's what's happening with your hostels.</p>
                 </div>
-                <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => navigate('/hostel/hostels')}
-                >
-                    <i className="fas fa-plus me-2"></i>
-                    Add New Hostel
-                </button>
+                <div className="d-flex gap-2">
+                    <Button
+                        variant="outline-primary"
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                    >
+                        <i className={`fas fa-sync-alt me-2 ${refreshing ? 'fa-spin' : ''}`}></i>
+                        Refresh
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={() => navigate('/hostel/hostels')}
+                    >
+                        <i className="fas fa-plus me-2"></i>
+                        Add New Hostel
+                    </Button>
+                </div>
             </div>
 
-            {/* Stats Cards - Row 1 */}
+            {/* Key Metrics Row */}
             <div className="row g-4 mb-4">
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Total Hostels</p>
-                                    <h2 className="h3 fw-bold mb-0">{stats?.totalHostels || 0}</h2>
-                                </div>
-                                <div className="bg-primary bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-hotel text-primary fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                <i className="fas fa-info-circle me-1"></i>
-                                Active listings
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Total Hostels"
+                        value={dashboardData.total_hostels || 0}
+                        subtitle={`${dashboardData.verified_hostels || 0} verified`}
+                        icon="fas fa-hotel"
+                        color="primary"
+                        onClick={() => navigate('/hostel/hostels')}
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Total Rooms</p>
-                                    <h2 className="h3 fw-bold mb-0">{stats?.totalRooms || 0}</h2>
-                                </div>
-                                <div className="bg-success bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-bed text-success fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-success small mt-2 mb-0">
-                                <i className="fas fa-check me-1"></i>
-                                {stats?.availableRooms || 0} available
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Total Rooms"
+                        value={dashboardData.total_rooms || 0}
+                        subtitle={`${dashboardData.total_available_beds || 0} beds available`}
+                        icon="fas fa-bed"
+                        color="success"
+                        onClick={() => navigate('/hostel/rooms')}
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Occupancy Rate</p>
-                                    <h2 className="h3 fw-bold mb-0">{stats?.occupancyRate || 0}%</h2>
-                                </div>
-                                <div className="bg-warning bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-chart-pie text-warning fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                {stats?.occupiedRooms || 0}/{stats?.totalRooms || 0} occupied
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Total Views"
+                        value={dashboardData.total_views || 0}
+                        subtitle={`${dashboardData.this_week?.views || 0} this week`}
+                        icon="fas fa-eye"
+                        color="info"
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Pending Bookings</p>
-                                    <h2 className="h3 fw-bold mb-0">{stats?.pendingBookings || 0}</h2>
-                                </div>
-                                <div className="bg-danger bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-clock text-danger fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-danger small mt-2 mb-0">
-                                Requires action
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Total Contacts"
+                        value={dashboardData.total_contacts || 0}
+                        subtitle={`${dashboardData.this_week?.contacts || 0} this week`}
+                        icon="fas fa-phone"
+                        color="success"
+                    />
                 </div>
             </div>
 
-            {/* Stats Cards - Row 2 */}
+            {/* Engagement Metrics Row */}
             <div className="row g-4 mb-4">
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Total Revenue</p>
-                                    <h2 className="h3 fw-bold mb-0">PKR {(stats?.totalRevenue || 0).toLocaleString()}</h2>
-                                </div>
-                                <div className="bg-success bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-dollar-sign text-success fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                All time earnings
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Student Favorites"
+                        value={dashboardData.total_favorites || 0}
+                        subtitle={`${dashboardData.this_week?.favorites || 0} this week`}
+                        icon="fas fa-heart"
+                        color="danger"
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Monthly Revenue</p>
-                                    <h2 className="h3 fw-bold mb-0">PKR {(stats?.monthlyRevenue || 0).toLocaleString()}</h2>
-                                </div>
-                                <div className="bg-info bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-calendar-alt text-info fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                Current month
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Average Rating"
+                        value={`${dashboardData.avg_rating || 0}/5`}
+                        subtitle={`${dashboardData.total_reviews || 0} reviews`}
+                        icon="fas fa-star"
+                        color="warning"
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Total Interactions</p>
-                                    <h2 className="h3 fw-bold mb-0">{stats?.totalInteractions || 0}</h2>
-                                </div>
-                                <div className="bg-purple bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-mouse-pointer text-purple fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                Calls + WhatsApp + Views
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Pending Reviews"
+                        value={dashboardData.pending_reviews || 0}
+                        subtitle="Need your response"
+                        icon="fas fa-comment-dots"
+                        color="warning"
+                        onClick={() => navigate('/hostel/reviews')}
+                    />
                 </div>
-
                 <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Avg Rating</p>
-                                    <h2 className="h3 fw-bold mb-0">
-                                        {stats?.avgRating || 0}
-                                        <i className="fas fa-star text-warning ms-2 fs-6"></i>
-                                    </h2>
-                                </div>
-                                <div className="bg-warning bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-star text-warning fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                {stats?.totalReviews || 0} reviews
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Verification Status"
+                        value={`${dashboardData.verified_hostels || 0}/${dashboardData.total_hostels || 0}`}
+                        subtitle={`${dashboardData.unverified_count || 0} pending`}
+                        icon="fas fa-certificate"
+                        color={dashboardData.unverified_count > 0 ? 'danger' : 'success'}
+                        onClick={() => navigate('/hostel/verification')}
+                    />
                 </div>
             </div>
 
-            {/* Charts Row */}
+            {/* Verification Status */}
+            <div className="row g-4 mb-4">
+                <div className="col-12">
+                    <VerificationStatus />
+                </div>
+            </div>
+
+            {/* Charts & Analytics Row */}
             <div className="row g-4 mb-4">
                 <div className="col-md-8">
-                    <Card>
-                        <CardHeader className="p-4">
-                            <CardTitle>Booking Trends</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                            <div className="chart-placeholder" style={{ height: '300px' }}>
-                                <div className="d-flex align-items-center justify-content-center h-100">
-                                    <div className="text-center">
-                                        <i className="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                                        <p className="text-muted">Chart visualization will appear here</p>
-                                        <small className="text-muted">Using Recharts library</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <ActivityChart 
+                        data={dashboardData.recent_interactions || []} 
+                        loading={loading}
+                    />
                 </div>
-
                 <div className="col-md-4">
+                    <TopHostelsCard 
+                        hostels={dashboardData.top_hostels || []}
+                        loading={loading}
+                        onViewHostel={handleViewHostel}
+                    />
+                </div>
+            </div>
+
+            {/* Action Items Row */}
+            <div className="row g-4 mb-4">
+                <div className="col-md-6">
+                    <ActionItemsCard 
+                        actionItems={dashboardData.action_items || {}}
+                        onActionClick={handleActionClick}
+                    />
+                </div>
+                <div className="col-md-6">
                     <Card>
-                        <CardHeader className="p-4">
-                            <CardTitle>Quick Stats</CardTitle>
+                        <CardHeader>
+                            <CardTitle>Quick Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4">
                             <div className="d-flex flex-column gap-3">
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="text-muted">Total Bookings</span>
-                                    <span className="fw-bold">{stats?.totalBookings || 0}</span>
-                                </div>
-                                <hr className="my-0" />
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="text-muted">Approved</span>
-                                    <Badge variant="success">{stats?.approvedBookings || 0}</Badge>
-                                </div>
-                                <hr className="my-0" />
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="text-muted">Pending</span>
-                                    <Badge variant="warning">{stats?.pendingBookings || 0}</Badge>
-                                </div>
-                                <hr className="my-0" />
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="text-muted">Rejected</span>
-                                    <Badge variant="danger">{stats?.rejectedBookings || 0}</Badge>
-                                </div>
+                                <Button
+                                    variant="outline-primary"
+                                    className="d-flex align-items-center justify-content-start"
+                                    onClick={() => navigate('/hostel/hostels')}
+                                >
+                                    <i className="fas fa-hotel me-3"></i>
+                                    <div className="text-start">
+                                        <div className="fw-semibold">Manage Hostels</div>
+                                        <small className="text-muted">View and edit your hostels</small>
+                                    </div>
+                                </Button>
+                                <Button
+                                    variant="outline-success"
+                                    className="d-flex align-items-center justify-content-start"
+                                    onClick={() => navigate('/hostel/rooms')}
+                                >
+                                    <i className="fas fa-bed me-3"></i>
+                                    <div className="text-start">
+                                        <div className="fw-semibold">Manage Rooms</div>
+                                        <small className="text-muted">Add and update room listings</small>
+                                    </div>
+                                </Button>
+                                <Button
+                                    variant="outline-info"
+                                    className="d-flex align-items-center justify-content-start"
+                                    onClick={() => navigate('/hostel/verification')}
+                                >
+                                    <i className="fas fa-certificate me-3"></i>
+                                    <div className="text-start">
+                                        <div className="fw-semibold">Verification</div>
+                                        <small className="text-muted">Submit verification requests</small>
+                                    </div>
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -292,7 +285,7 @@ const Dashboard = () => {
 
             {/* Contact Information Card */}
             <Card className="mb-4">
-                <CardHeader className="p-4">
+                <CardHeader>
                     <CardTitle>Student Inquiries</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
@@ -310,69 +303,6 @@ const Dashboard = () => {
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Quick Actions */}
-            <div className="row g-4 mt-2">
-                <div className="col-md-4">
-                    <div
-                        className="card hover-shadow transition-shadow h-100"
-                        onClick={() => navigate('/hostel/hostels')}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <div className="card-body p-4">
-                            <div className="d-flex align-items-center">
-                                <div className="bg-primary bg-opacity-10 rounded p-3 me-3">
-                                    <i className="fas fa-hotel text-primary fa-2x"></i>
-                                </div>
-                                <div>
-                                    <h5 className="mb-1">Manage Hostels</h5>
-                                    <p className="text-muted small mb-0">View and edit your hostels</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-md-4">
-                    <div
-                        className="card hover-shadow transition-shadow h-100"
-                        onClick={() => navigate('/hostel/rooms')}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <div className="card-body p-4">
-                            <div className="d-flex align-items-center">
-                                <div className="bg-success bg-opacity-10 rounded p-3 me-3">
-                                    <i className="fas fa-bed text-success fa-2x"></i>
-                                </div>
-                                <div>
-                                    <h5 className="mb-1">Manage Rooms</h5>
-                                    <p className="text-muted small mb-0">Add and update room listings</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-md-4">
-                    <div
-                        className="card hover-shadow transition-shadow h-100"
-                        onClick={() => navigate('/hostel/verification')}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <div className="card-body p-4">
-                            <div className="d-flex align-items-center">
-                                <div className="bg-info bg-opacity-10 rounded p-3 me-3">
-                                    <i className="fas fa-certificate text-info fa-2x"></i>
-                                </div>
-                                <div>
-                                    <h5 className="mb-1">Verification</h5>
-                                    <p className="text-muted small mb-0">Submit verification requests</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

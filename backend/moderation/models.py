@@ -55,16 +55,22 @@ class VerificationRequest(models.Model):
     otp = models.CharField(max_length=6, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     profile_image = CloudinaryField('profile', null=True, blank=True)
-    cnic_image = CloudinaryField('cnic', null=True, blank=True)
+    cnic_front = CloudinaryField('cnic_front', null=True, blank=True, help_text="Front side of CNIC")
+    cnic_back = CloudinaryField('cnic_back', null=True, blank=True, help_text="Back side of CNIC")
+    passport_photo = CloudinaryField('passport_photo', null=True, blank=True, help_text="Passport-size photo captured by camera")
 
     # Hostel Verification Fields
     hostel_thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
+    utility_bill = CloudinaryField('utility_bill', null=True, blank=True, help_text="Utility bill or property document for location verification")
     location_lat = models.FloatField(null=True, blank=True)
     location_lng = models.FloatField(null=True, blank=True)
     location_verified = models.BooleanField(default=False)
 
     # Room Verification Fields
-    room_images = models.JSONField(null=True, blank=True)  # List of {url, verified} objects
+    room_images = models.JSONField(null=True, blank=True, help_text="List of {url, source, verified} objects where source is 'camera' or 'gallery'")
+    
+    # Admin Feedback
+    rejection_reason = models.TextField(blank=True, null=True, help_text="Detailed reason for rejection provided by admin")
 
     class Meta:
         ordering = ['-created_at']

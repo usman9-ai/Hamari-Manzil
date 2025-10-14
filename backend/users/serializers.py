@@ -62,29 +62,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'password', 'password2', 'gender', 'role', 'phone', 'city'
         )
 
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
-
-    def validate_phone(self, value):
-        if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("A user with this phone number already exists.")
-        return value
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("This username is already taken.")
-        return value
-
     def validate(self, attrs):
-        # Password matching validation
+        # Password match
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({
                 "password": "Password fields didn't match."
             })
 
-        # Additional validation for required fields
+        # Required fields check
         required_fields = ['first_name', 'last_name', 'gender', 'role', 'phone', 'city']
         for field in required_fields:
             if not attrs.get(field):
@@ -92,15 +77,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                     field: f"{field.replace('_', ' ').title()} is required."
                 })
 
+        # Unique validations
+        if User.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email": "A user with this email already exists."})
+        if User.objects.filter(phone=attrs['phone']).exists():
+            raise serializers.ValidationError({"phone": "A user with this phone number already exists."})
+        if User.objects.filter(username=attrs['username']).exists():
+            raise serializers.ValidationError({"username": "This username is already taken."})
+
         return attrs
 
     def create(self, validated_data):
-        # Remove password2 from the data as it's not needed for user creation
+        # Remove password2 as it's not needed for user creation
         validated_data.pop('password2')
         try:
             user = User.objects.create_user(**validated_data)
             return user
-        except Exception as e:
+        except Exception:
             raise serializers.ValidationError({
                 "error": "Failed to create user. Please try again."
             })

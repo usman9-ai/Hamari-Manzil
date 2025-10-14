@@ -71,6 +71,14 @@ MIDDLEWARE = [
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React app (frontend)
+]
+
+# Optional (if you use CSRF)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 ROOT_URLCONF = 'backend.urls'
 

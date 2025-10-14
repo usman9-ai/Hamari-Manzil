@@ -1,97 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { getHostels, getVerificationRequests, submitVerificationRequest } from '../../actions/hostelActions';
+import React, { useState, useEffect, useCallback } from 'react';
+import { handleHostelVerification, fetchVerificationStatus, getVerificationStatusBadge } from '../../services/verificationServices';
+import { fetchMyHostels } from '../../services/hostelServices';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import ToastContainer from '../../components/ui/ToastContainer';
+import useToast from '../../hooks/useToast';
 
 const Verification = () => {
     const [hostels, setHostels] = useState([]);
-    const [verificationRequests, setVerificationRequests] = useState([]);
+    const [verificationStatus, setVerificationStatus] = useState({});
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedHostel, setSelectedHostel] = useState(null);
-    const [documents, setDocuments] = useState([]);
+    const [utilityBill, setUtilityBill] = useState(null);
+    const [utilityBillPreview, setUtilityBillPreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const { toasts, showSuccess, showError, removeToast } = useToast();
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [hostelsRes, verificationsRes] = await Promise.all([
-                getHostels(),
-                getVerificationRequests()
+            const [hostelsRes, statusRes] = await Promise.all([
+                fetchMyHostels(),
+                fetchVerificationStatus()
             ]);
 
             if (hostelsRes.success) setHostels(hostelsRes.data);
-            if (verificationsRes.success) setVerificationRequests(verificationsRes.data);
+            if (statusRes.success) setVerificationStatus(statusRes.data.hostel_verifications || {});
         } catch (error) {
             console.error('Error loading data:', error);
+            showError('Error', 'Failed to load verification data');
         } finally {
             setLoading(false);
         }
-    };
+    }, [showError]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleSubmitVerification = async () => {
         if (!selectedHostel) {
-            alert('Please select a hostel');
+            showError('Error', 'Please select a hostel');
             return;
         }
 
-        if (documents.length === 0) {
-            alert('Please upload at least one document');
+        if (!utilityBill) {
+            showError('Error', 'Please upload a utility bill document');
             return;
         }
 
         try {
             setSubmitting(true);
-            const result = await submitVerificationRequest(selectedHostel.id, documents);
+            const result = await handleHostelVerification(selectedHostel.id, utilityBill);
 
             if (result.success) {
-                alert('Verification request submitted successfully');
+                showSuccess('Success', result.message);
                 setShowModal(false);
                 setSelectedHostel(null);
-                setDocuments([]);
+                setUtilityBill(null);
+                setUtilityBillPreview(null);
                 loadData();
             } else {
-                alert(result.message || 'Failed to submit verification request');
+                showError('Error', result.message);
             }
         } catch (error) {
             console.error('Error submitting verification:', error);
-            alert('An error occurred');
+            showError('Error', 'Failed to submit verification request');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleFileUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const uploadedDocs = files.map(file => ({
-            name: file.name.split('.')[0],
-            url: file.name,
-            uploadedAt: new Date().toISOString().split('T')[0]
-        }));
-        setDocuments(prev => [...prev, ...uploadedDocs]);
+
+    const getStatusBadge = (hostelId) => {
+        const status = verificationStatus[hostelId]?.status || 'not_submitted';
+        const badge = getVerificationStatusBadge(status);
+        return (
+            <Badge variant={badge.variant}>
+                <i className={`${badge.icon} me-1`}></i>
+                {badge.text}
+            </Badge>
+        );
     };
 
-    const removeDocument = (index) => {
-        setDocuments(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const getStatusBadge = (status) => {
-        const variants = {
-            pending: 'warning',
-            approved: 'success',
-            rejected: 'danger',
-        };
-        return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
-    };
-
-    const unverifiedHostels = hostels.filter(h =>
-        !h.verified &&
-        !verificationRequests.find(vr => vr.hostelId === h.id)
-    );
+    const unverifiedHostels = hostels.filter(hostel => {
+        const status = verificationStatus[hostel.id]?.status;
+        return status !== 'approved' && status !== 'pending';
+    });
 
     if (loading) {
         return (
@@ -108,11 +104,14 @@ const Verification = () => {
 
     return (
         <div className="container-fluid py-4">
+            {/* Toast Notifications */}
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
+            
             {/* Page Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="h3 fw-bold mb-1">Hostel Verification</h1>
-                    <p className="text-muted">Request verification for your hostels</p>
+                    <p className="text-muted">Upload utility bills to verify your hostels</p>
                 </div>
                 {unverifiedHostels.length > 0 && (
                     <button
@@ -135,7 +134,7 @@ const Verification = () => {
                                 <div>
                                     <p className="text-muted small mb-1">Verified Hostels</p>
                                     <h2 className="h3 fw-bold mb-0">
-                                        {hostels.filter(h => h.verified).length}
+                                        {Object.values(verificationStatus).filter(v => v.status === 'approved').length}
                                     </h2>
                                 </div>
                                 <div className="bg-success bg-opacity-10 rounded p-2">
@@ -153,7 +152,7 @@ const Verification = () => {
                                 <div>
                                     <p className="text-muted small mb-1">Pending Requests</p>
                                     <h2 className="h3 fw-bold mb-0">
-                                        {verificationRequests.filter(vr => vr.status === 'pending').length}
+                                        {Object.values(verificationStatus).filter(v => v.status === 'pending').length}
                                     </h2>
                                 </div>
                                 <div className="bg-warning bg-opacity-10 rounded p-2">
@@ -181,110 +180,70 @@ const Verification = () => {
                 </div>
             </div>
 
-            {/* Verification Requests */}
+            {/* Hostel Verification Status */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Verification Requests</CardTitle>
+                    <CardTitle>Hostel Verification Status</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {verificationRequests.length === 0 ? (
+                    {hostels.length === 0 ? (
                         <div className="text-center py-5">
-                            <i className="fas fa-certificate fa-3x text-muted mb-3"></i>
-                            <h5 className="text-muted">No verification requests</h5>
-                            <p className="text-muted mb-3">Submit verification requests to build trust with students</p>
-                            {unverifiedHostels.length > 0 && (
-                                <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={() => setShowModal(true)}
-                                >
-                                    <i className="fas fa-paper-plane me-2"></i>
-                                    Submit Request
-                                </button>
-                            )}
+                            <i className="fas fa-hotel fa-3x text-muted mb-3"></i>
+                            <h5 className="text-muted">No hostels found</h5>
+                            <p className="text-muted mb-3">Create hostels first to request verification</p>
                         </div>
                     ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Hostel Name</th>
-                                        <th>Submitted Date</th>
-                                        <th>Documents</th>
-                                        <th>Status</th>
-                                        <th>Admin Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {verificationRequests.map((request) => (
-                                        <tr key={request.id}>
-                                            <td>
-                                                <div className="fw-semibold">{request.hostelName}</div>
-                                            </td>
-                                            <td>{request.submittedAt}</td>
-                                            <td>
-                                                <div className="d-flex flex-column gap-1">
-                                                    {request.documents.map((doc, idx) => (
-                                                        <Badge key={idx} variant="info" className="me-1">
-                                                            <i className="fas fa-file me-1"></i>
-                                                            {doc.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td>{getStatusBadge(request.status)}</td>
-                                            <td>
-                                                {request.adminNotes ? (
-                                                    <span className="text-muted">{request.adminNotes}</span>
-                                                ) : (
-                                                    <span className="text-muted fst-italic">No notes yet</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="row g-3">
+                            {hostels.map((hostel) => (
+                                <div key={hostel.id} className="col-md-6">
+                                    <div className="border rounded p-3">
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 className="mb-1">{hostel.name}</h6>
+                                                <p className="text-muted small mb-0">{hostel.city}</p>
+                                            </div>
+                                            {getStatusBadge(hostel.id)}
+                                        </div>
+                                        
+                                        {verificationStatus[hostel.id]?.rejection_reason && (
+                                            <div className="mt-2">
+                                                <small className="text-danger">
+                                                    <strong>Rejection Reason:</strong> {verificationStatus[hostel.id].rejection_reason}
+                                                </small>
+                                            </div>
+                                        )}
+                                        
+                                        {verificationStatus[hostel.id]?.created_at && (
+                                            <div className="mt-2">
+                                                <small className="text-muted">
+                                                    Submitted: {new Date(verificationStatus[hostel.id].created_at).toLocaleDateString()}
+                                                </small>
+                                            </div>
+                                        )}
+                                        
+                                        {unverifiedHostels.some(h => h.id === hostel.id) && (
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    onClick={() => {
+                                                        setSelectedHostel(hostel);
+                                                        setShowModal(true);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-paper-plane me-2"></i>
+                                                    Request Verification
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Unverified Hostels */}
-            {unverifiedHostels.length > 0 && (
-                <Card className="mt-4">
-                    <CardHeader>
-                        <CardTitle>Unverified Hostels</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="row g-3">
-                            {unverifiedHostels.map((hostel) => (
-                                <div key={hostel.id} className="col-md-6">
-                                    <div className="border rounded p-3">
-                                        <div className="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <h6 className="mb-1">{hostel.name}</h6>
-                                                <p className="text-muted small mb-2">{hostel.city}</p>
-                                                <Badge variant="warning">Not Verified</Badge>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="btn btn-sm btn-outline-primary"
-                                                onClick={() => {
-                                                    setSelectedHostel(hostel);
-                                                    setShowModal(true);
-                                                }}
-                                            >
-                                                <i className="fas fa-paper-plane me-2"></i>
-                                                Request Verification
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
 
             {/* Verification Modal */}
             {showModal && (
@@ -299,7 +258,8 @@ const Verification = () => {
                                     onClick={() => {
                                         setShowModal(false);
                                         setSelectedHostel(null);
-                                        setDocuments([]);
+                                        setUtilityBill(null);
+                                        setUtilityBillPreview(null);
                                     }}
                                 ></button>
                             </div>
@@ -324,46 +284,56 @@ const Verification = () => {
                                     </select>
                                 </div>
 
-                                {/* Upload Documents */}
+                                {/* Upload Utility Bill */}
                                 <div className="mb-4">
                                     <label className="form-label fw-semibold">
-                                        Upload Documents
+                                        Upload Utility Bill
                                         <span className="text-danger ms-1">*</span>
                                     </label>
                                     <p className="text-muted small mb-2">
-                                        Required: CNIC, Business License, Utility Bills
+                                        Required: Utility bill or property document showing the hostel address
                                     </p>
-                                    <input
-                                        type="file"
-                                        className="form-control"
-                                        multiple
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        onChange={handleFileUpload}
-                                    />
-                                </div>
-
-                                {/* Document List */}
-                                {documents.length > 0 && (
-                                    <div className="mb-4">
-                                        <label className="form-label fw-semibold">Uploaded Documents</label>
-                                        <div className="list-group">
-                                            {documents.map((doc, idx) => (
-                                                <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <i className="fas fa-file me-2 text-primary"></i>
-                                                        {doc.name}
-                                                    </div>
-                                                    <button
-                                                        className="btn btn-sm btn-outline-danger"
-                                                        onClick={() => removeDocument(idx)}
-                                                    >
-                                                        <i className="fas fa-times"></i>
-                                                    </button>
-                                                </div>
-                                            ))}
+                                    
+                                    {utilityBillPreview ? (
+                                        <div className="border rounded p-3 text-center">
+                                            <img 
+                                                src={utilityBillPreview} 
+                                                alt="Utility Bill Preview" 
+                                                className="img-fluid rounded mb-2"
+                                                style={{ maxHeight: '200px' }}
+                                            />
+                                            <div className="d-flex justify-content-center gap-2">
+                                                <button 
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    onClick={() => {
+                                                        setUtilityBill(null);
+                                                        setUtilityBillPreview(null);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-edit me-1"></i>
+                                                    Change
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="border rounded p-4 text-center" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div>
+                                                <i className="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                                <p className="text-muted">Click to upload utility bill</p>
+                                                <button 
+                                                    className="btn btn-outline-primary"
+                                                    onClick={() => {
+                                                        // Cloudinary widget will be implemented here
+                                                        console.log('Open Cloudinary widget for utility bill');
+                                                    }}
+                                                >
+                                                    <i className="fas fa-upload me-2"></i>
+                                                    Upload Utility Bill
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Info Alert */}
                                 <div className="alert alert-info">
@@ -378,7 +348,8 @@ const Verification = () => {
                                     onClick={() => {
                                         setShowModal(false);
                                         setSelectedHostel(null);
-                                        setDocuments([]);
+                                        setUtilityBill(null);
+                                        setUtilityBillPreview(null);
                                     }}
                                 >
                                     <i className="fas fa-times me-2"></i>
@@ -388,7 +359,7 @@ const Verification = () => {
                                     type="button"
                                     className="btn btn-primary"
                                     onClick={handleSubmitVerification}
-                                    disabled={submitting || !selectedHostel || documents.length === 0}
+                                    disabled={submitting || !selectedHostel || !utilityBill}
                                 >
                                     {submitting ? (
                                         <>
