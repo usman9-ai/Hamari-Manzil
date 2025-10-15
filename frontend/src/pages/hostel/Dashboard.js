@@ -160,43 +160,6 @@ const Dashboard = () => {
 
             {/* Stats Cards - Row 2 */}
             <div className="row g-4 mb-4">
-                <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Total Revenue</p>
-                                    <h2 className="h3 fw-bold mb-0">PKR {(stats?.totalRevenue || 0).toLocaleString()}</h2>
-                                </div>
-                                <div className="bg-success bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-dollar-sign text-success fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                All time earnings
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="col-md-3 col-sm-6">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p className="text-muted small mb-1">Monthly Revenue</p>
-                                    <h2 className="h3 fw-bold mb-0">PKR {(stats?.monthlyRevenue || 0).toLocaleString()}</h2>
-                                </div>
-                                <div className="bg-info bg-opacity-10 rounded p-3">
-                                    <i className="fas fa-calendar-alt text-info fs-4"></i>
-                                </div>
-                            </div>
-                            <p className="text-muted small mt-2 mb-0">
-                                Current month
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
 
                 <div className="col-md-3 col-sm-6">
                     <Card>
@@ -325,7 +288,7 @@ const Dashboard = () => {
                         <div className="card-body p-4">
                             <div className="d-flex align-items-center">
                                 <div className="bg-primary bg-opacity-10 rounded p-3 me-3">
-                                    <i className="fas fa-hotel text-primary fa-2x"></i>
+                                    <i className="fas fa-home text-primary fa-2x"></i>
                                 </div>
                                 <div>
                                     <h5 className="mb-1">Manage Hostels</h5>

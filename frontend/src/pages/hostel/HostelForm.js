@@ -7,21 +7,21 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
-        city: '',
-        address: '',
         description: '',
         phone: '',
         email: '',
-        gender: 'male',
+        genderType: 'boys',
         totalRooms: 0,
         availableRooms: 0,
         facilities: [],
+        city: '',
+        address: '',
         latitude: '',
         longitude: '',
         mapLocation: '',
         images: [],
         videoUrl: '',
-        verified: false, // Reset verification on create/location change
+        verified: false,
         ...hostel
     });
 
@@ -117,6 +117,9 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
         const newLat = locationData.latitude;
         const newLng = locationData.longitude;
 
+        // Extract city from address (take first part before comma)
+        const cityFromAddress = locationData.address?.split(',')[0] || 'Lahore';
+
         // Check if location changed significantly (more than 0.001 degrees ~100m)
         const hasChanged = hostel && (
             Math.abs(oldLat - newLat) > 0.001 ||
@@ -125,11 +128,12 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
 
         setFormData(prev => ({
             ...prev,
+            city: cityFromAddress,
             address: locationData.address,
             latitude: locationData.latitude,
             longitude: locationData.longitude,
             mapLocation: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`,
-            verified: hasChanged ? false : prev.verified // Reset verification if location changed
+            verified: hasChanged ? false : prev.verified
         }));
 
         if (hasChanged) {
@@ -167,30 +171,6 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                         name="name"
                         className="form-control"
                         value={formData.name}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div className="col-md-6">
-                    <label className="form-label">City <span className="text-danger">*</span></label>
-                    <input
-                        type="text"
-                        name="city"
-                        className="form-control"
-                        value={formData.city}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div className="col-12">
-                    <label className="form-label">Address <span className="text-danger">*</span></label>
-                    <input
-                        type="text"
-                        name="address"
-                        className="form-control"
-                        value={formData.address}
                         onChange={handleChange}
                         required
                     />
@@ -241,17 +221,17 @@ const HostelForm = ({ hostel, onSubmit, onCancel, submitting }) => {
                 </div>
 
                 <div className="col-md-4">
-                    <label className="form-label">Gender <span className="text-danger">*</span></label>
+                    <label className="form-label">Gender Type <span className="text-danger">*</span></label>
                     <select
-                        name="gender"
+                        name="genderType"
                         className="form-select"
-                        value={formData.gender}
+                        value={formData.genderType}
                         onChange={handleChange}
                         required
                     >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="co-ed">Co-ed</option>
+                        <option value="boys">Boys</option>
+                        <option value="girls">Girls</option>
+                        <option value="coed">Co-ed</option>
                     </select>
                 </div>
 

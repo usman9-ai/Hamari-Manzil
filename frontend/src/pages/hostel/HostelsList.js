@@ -16,6 +16,9 @@ const HostelsList = () => {
     const [editingHostel, setEditingHostel] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [verificationRequests, setVerificationRequests] = useState([]);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [selectedHostelForVerification, setSelectedHostelForVerification] = useState(null);
+    const [verificationDocuments, setVerificationDocuments] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,7 +31,7 @@ const HostelsList = () => {
             getHostels(),
             getVerificationRequests()
         ]);
-        
+
         if (hostelsResult.success) {
             setHostels(hostelsResult.data);
         }
@@ -39,13 +42,53 @@ const HostelsList = () => {
     };
 
     const hasVerificationRequest = (hostelId) => {
-        return verificationRequests.some(req => 
+        return verificationRequests.some(req =>
             req.hostelId === hostelId && req.status === 'pending'
         );
     };
 
     const handleRequestVerification = (hostel) => {
-        navigate('/hostel/verification');
+        setSelectedHostelForVerification(hostel);
+        setShowVerificationModal(true);
+    };
+
+    const handleFileUpload = (e) => {
+        const files = Array.from(e.target.files);
+        setVerificationDocuments(prev => [...prev, ...files]);
+    };
+
+    const removeDocument = (index) => {
+        setVerificationDocuments(prev => prev.filter((_, idx) => idx !== index));
+    };
+
+    const handleSubmitVerification = async () => {
+        if (!selectedHostelForVerification || verificationDocuments.length === 0) {
+            alert('Please select documents to upload');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const result = await submitVerificationRequest(
+                selectedHostelForVerification.id,
+                verificationDocuments
+            );
+
+            if (result.success) {
+                alert('Verification request submitted successfully! We will review it within 3-5 business days.');
+                setShowVerificationModal(false);
+                setSelectedHostelForVerification(null);
+                setVerificationDocuments([]);
+                loadHostels(); // Reload to update verification requests
+            } else {
+                alert('Failed to submit verification request. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error submitting verification:', error);
+            alert('An error occurred. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -148,49 +191,69 @@ const HostelsList = () => {
             </div>
 
             {/* Filters */}
-            <Card className="mb-4">
+            <Card className="mb-4 shadow-sm" style={{ borderRadius: '12px', border: 'none' }}>
                 <CardContent className="p-4">
-                    <div className="row g-3">
+                    <div className="row g-3 align-items-center">
                         <div className="col-md-4">
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Search by name or address..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-search text-muted"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    className="form-control border-start-0"
+                                    placeholder="Search by name or address..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                />
+                            </div>
                         </div>
                         <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={filterCity}
-                                onChange={(e) => setFilterCity(e.target.value)}
-                            >
-                                <option value="">All Cities</option>
-                                {cities.map(city => (
-                                    <option key={city} value={city}>{city}</option>
-                                ))}
-                            </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-map-marker-alt text-muted"></i>
+                                </span>
+                                <select
+                                    className="form-select border-start-0"
+                                    value={filterCity}
+                                    onChange={(e) => setFilterCity(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                >
+                                    <option value="">All Cities</option>
+                                    {cities.map(city => (
+                                        <option key={city} value={city}>{city}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={filterGender}
-                                onChange={(e) => setFilterGender(e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-venus-mars text-muted"></i>
+                                </span>
+                                <select
+                                    className="form-select border-start-0"
+                                    value={filterGender}
+                                    onChange={(e) => setFilterGender(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="boys">Boys</option>
+                                    <option value="girls">Girls</option>
+                                    <option value="coed">Co-ed</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="col-md-2">
                             <button
-                                className="btn btn-outline-secondary w-100"
+                                className="btn btn-outline-primary w-100"
                                 onClick={() => {
                                     setSearchTerm('');
                                     setFilterCity('');
                                     setFilterGender('');
                                 }}
+                                style={{ borderRadius: '8px', fontWeight: '600' }}
                             >
                                 <i className="fas fa-redo me-2"></i>
                                 Reset
@@ -205,7 +268,7 @@ const HostelsList = () => {
                 <Card>
                     <CardContent className="p-5">
                         <div className="text-center">
-                            <i className="fas fa-hotel fa-4x text-muted mb-3"></i>
+                            <i className="fas fa-home fa-4x text-muted mb-3"></i>
                             <h4>No hostels found</h4>
                             <p className="text-muted">
                                 {searchTerm || filterCity || filterGender
@@ -295,36 +358,13 @@ const HostelsList = () => {
                                                 {hostel.city}
                                             </p>
                                         </div>
-                                        <div className="dropdown">
-                                            <button
-                                                className="btn btn-sm btn-link text-dark p-0"
-                                                type="button"
-                                                data-bs-toggle="dropdown"
-                                            >
-                                                <i className="fas fa-ellipsis-v"></i>
-                                            </button>
-                                            <ul className="dropdown-menu dropdown-menu-end">
-                                                <li>
-                                                    <button className="dropdown-item" onClick={() => handleEdit(hostel)}>
-                                                        <i className="fas fa-edit me-2"></i>
-                                                        Edit
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <button className="dropdown-item" onClick={() => handleToggleStatus(hostel.id)}>
-                                                        <i className={`fas ${hostel.disabled ? 'fa-check' : 'fa-ban'} me-2`}></i>
-                                                        {hostel.disabled ? 'Enable' : 'Disable'}
-                                                    </button>
-                                                </li>
-                                                <li><hr className="dropdown-divider" /></li>
-                                                <li>
-                                                    <button className="dropdown-item text-danger" onClick={() => handleDelete(hostel.id)}>
-                                                        <i className="fas fa-trash me-2"></i>
-                                                        Delete
-                                                    </button>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <button
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => handleDelete(hostel.id)}
+                                            title="Delete Hostel"
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
                                     </div>
 
                                     {/* Description */}
@@ -444,6 +484,127 @@ const HostelsList = () => {
                                     }}
                                     submitting={submitting}
                                 />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Verification Modal */}
+            {showVerificationModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Submit Verification Request</h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => {
+                                        setShowVerificationModal(false);
+                                        setSelectedHostelForVerification(null);
+                                        setVerificationDocuments([]);
+                                    }}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {/* Hostel Info */}
+                                {selectedHostelForVerification && (
+                                    <div className="mb-4 p-3 bg-light rounded">
+                                        <h6 className="fw-bold mb-2">
+                                            <i className="fas fa-building me-2 text-primary"></i>
+                                            {selectedHostelForVerification.name}
+                                        </h6>
+                                        <p className="text-muted mb-0 small">
+                                            <i className="fas fa-map-marker-alt me-2"></i>
+                                            {selectedHostelForVerification.city}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Upload Documents */}
+                                <div className="mb-4">
+                                    <label className="form-label fw-semibold">
+                                        Upload Documents
+                                        <span className="text-danger ms-1">*</span>
+                                    </label>
+                                    <p className="text-muted small mb-2">
+                                        Required: CNIC, Business License, Utility Bills, Property Documents
+                                    </p>
+                                    <input
+                                        type="file"
+                                        className="form-control"
+                                        multiple
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        onChange={handleFileUpload}
+                                    />
+                                </div>
+
+                                {/* Document List */}
+                                {verificationDocuments.length > 0 && (
+                                    <div className="mb-4">
+                                        <label className="form-label fw-semibold">Uploaded Documents ({verificationDocuments.length})</label>
+                                        <div className="list-group">
+                                            {verificationDocuments.map((doc, idx) => (
+                                                <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i className="fas fa-file me-2 text-primary"></i>
+                                                        {doc.name}
+                                                        <small className="text-muted ms-2">
+                                                            ({(doc.size / 1024).toFixed(2)} KB)
+                                                        </small>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => removeDocument(idx)}
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Info Alert */}
+                                <div className="alert alert-info mb-0">
+                                    <i className="fas fa-info-circle me-2"></i>
+                                    Verification requests are typically reviewed within 3-5 business days. You'll receive notifications about status updates.
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <div className='d-flex justify-content-end gap-2 mt-4'>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => {
+                                            setShowVerificationModal(false);
+                                            setSelectedHostelForVerification(null);
+                                            setVerificationDocuments([]);
+                                        }}
+                                    >
+                                        <i className="fas fa-times me-2"></i>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={handleSubmitVerification}
+                                        disabled={submitting || !selectedHostelForVerification || verificationDocuments.length === 0}
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                                Submitting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-paper-plane me-2"></i>
+                                                Submit Request
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

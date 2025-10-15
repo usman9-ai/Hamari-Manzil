@@ -40,7 +40,7 @@ const CallToActionCard = ({ onGetStarted }) => {
               <small>Happy Students</small>
             </div>
             <div className="col-4">
-              <i className="fas fa-hotel text-warning mb-1"></i>
+              <i className="fas fa-home text-warning mb-1"></i>
               <h4 className="fw-bold">500+</h4>
               <small>Hostels</small>
             </div>

@@ -2,16 +2,16 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
-// Import pages
-import HomePage from './pages/HomePage';
+// Import Student Pages (Public)
+import BrowseHostels from './pages/student/BrowseHostels';
+import HostelDetails from './pages/student/HostelDetails';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import StudentDashboard from './pages/student/StudentDashboard';
-import OwnerDashboard from './pages/owner/OwnerDashboard';
-import ManageHostels from './pages/owner/ManageHostels';
-import Bookings from './pages/student/Bookings';
+import ForgotPassword from './pages/ForgotPassword';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
 
-// Import Hostel Portal
+// Import Hostel Portal (For Owners)
 import HostelLayout from './layouts/hostel/HostelLayout';
 import HostelDashboard from './pages/hostel/Dashboard';
 import HostelsList from './pages/hostel/HostelsList';
@@ -20,68 +20,22 @@ import ReviewsReports from './pages/hostel/ReviewsReports';
 import Verification from './pages/hostel/Verification';
 import Profile from './pages/hostel/Profile';
 
-// Auth guard component
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('token');
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        {/* Public Student Pages */}
+        <Route path="/" element={<BrowseHostels />} />
+        <Route path="/hostel-details/:id" element={<HostelDetails />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsConditions />} />
 
-        {/* Student routes */}
-        <Route
-          path="/student/dashboard"
-          element={
-            // <ProtectedRoute requiredRole="student">
-            <StudentDashboard />
-            // </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/student/bookings"
-          element={
-            // <ProtectedRoute requiredRole="student">
-            <Bookings />
-            // </ProtectedRoute>
-          }
-        />
+        {/* Hostel Owner Auth Pages (No Layout) */}
+        <Route path="/hostel/login" element={<LoginPage />} />
+        <Route path="/hostel/signup" element={<SignupPage />} />
+        <Route path="/hostel/forgot-password" element={<ForgotPassword />} />
 
-        {/* Owner routes */}
-        <Route
-          path="/owner/dashboard"
-          element={
-            // <ProtectedRoute requiredRole="owner">
-            <OwnerDashboard />
-            // </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/owner/hostels"
-          element={
-            // <ProtectedRoute requiredRole="owner">
-            <ManageHostels />
-            // </ProtectedRoute>
-          }
-        />
-
-        {/* Hostel Portal routes */}
+        {/* Hostel Owner Portal (With Layout) */}
         <Route
           path="/hostel/*"
           element={
@@ -99,15 +53,9 @@ function App() {
           }
         />
 
-        {/* Dashboard redirect based on role */}
-        <Route
-          path="/dashboard"
-          element={
-            // <ProtectedRoute>
-            <DashboardRedirect />
-            // </ProtectedRoute>
-          }
-        />
+        {/* Legacy routes - redirect to new structure */}
+        <Route path="/login" element={<Navigate to="/hostel/login" replace />} />
+        <Route path="/signup" element={<Navigate to="/hostel/signup" replace />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -115,18 +63,5 @@ function App() {
     </Router>
   );
 }
-
-// Helper component to redirect to the appropriate dashboard
-const DashboardRedirect = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  if (user.role === 'student') {
-    return <Navigate to="/student/dashboard" replace />;
-  } else if (user.role === 'owner') {
-    return <Navigate to="/owner/dashboard" replace />;
-  } else {
-    return <Navigate to="/" replace />;
-  }
-};
 
 export default App;

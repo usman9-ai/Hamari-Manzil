@@ -7,8 +7,8 @@ const HostelLayout = ({ children }) => {
     const location = useLocation();
 
     const menuItems = [
-        { path: '/hostel/dashboard', icon: 'fa-home', label: 'Dashboard' },
-        { path: '/hostel/hostels', icon: 'fa-hotel', label: 'Hostels' },
+        { path: '/hostel/dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' },
+        { path: '/hostel/hostels', icon: 'fa-home', label: 'Hostels' },
         { path: '/hostel/rooms', icon: 'fa-bed', label: 'Rooms' },
         { path: '/hostel/reviews', icon: 'fa-star', label: 'Reviews' },
         { path: '/hostel/verification', icon: 'fa-certificate', label: 'Verification' },
@@ -41,7 +41,7 @@ const HostelLayout = ({ children }) => {
             >
                 <div className="p-3 border-bottom" style={{ borderColor: '#dee2e6' }}>
                     <div className="d-flex align-items-center justify-content-between">
-                        <button 
+                        <button
                             onClick={() => navigate('/')}
                             className="d-flex align-items-center btn btn-link text-decoration-none p-0"
                             style={{ border: 'none' }}
@@ -52,7 +52,7 @@ const HostelLayout = ({ children }) => {
                             >
                                 <i className="fas fa-home text-white"></i>
                             </div>
-                            <div>
+                            <div className='text-start'>
                                 <h5 className="mb-0 fw-bold text-primary">Hamari Manzil</h5>
                                 <small className="text-muted">Hostel Portal</small>
                             </div>
@@ -91,8 +91,8 @@ const HostelLayout = ({ children }) => {
                 <div className="mt-auto p-3 border-top" style={{ borderColor: '#dee2e6' }}>
                     <button
                         onClick={handleLogout}
-                        className="btn btn-outline-danger w-100"
-                        style={{ borderRadius: '10px' }}
+                        className="btn btn-danger w-100"
+                        style={{ borderRadius: '10px', fontWeight: '600' }}
                     >
                         <i className="fas fa-sign-out-alt me-2"></i>
                         Logout
@@ -151,12 +151,16 @@ const HostelLayout = ({ children }) => {
                 {/* Footer */}
                 <footer className="bg-white border-top py-3">
                     <div className="container-fluid">
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center flex-wrap">
                             <small className="text-muted">
                                 © {new Date().getFullYear()} Hamari Manzil. All rights reserved.
                             </small>
                             <small className="text-muted">
-                                Need help? <a href="/support" className="text-primary">Contact Support</a>
+                                <a href="/privacy" className="text-muted text-decoration-none me-2">Privacy Policy</a>
+                                <span>•</span>
+                                <a href="/terms" className="text-muted text-decoration-none ms-2 me-3">Terms</a>
+                                <span>•</span>
+                                <span className="ms-2">Need help? <a href="https://wa.me/923004334270" target="_blank" rel="noopener noreferrer" className="text-primary">Contact Support</a></span>
                             </small>
                         </div>
                     </div>

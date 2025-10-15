@@ -193,7 +193,7 @@ const Profile = () => {
                                 <hr className="my-0" />
                                 <div>
                                     <small className="text-muted d-block">Member Since</small>
-                                    <strong>January 2024</strong>
+                                    <strong>January 2025</strong>
                                 </div>
                                 <hr className="my-0" />
                                 <div>

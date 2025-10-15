@@ -358,6 +358,27 @@ export const getReviews = async (hostelId = null) => {
     return { success: true, data: reviews };
 };
 
+export const submitReview = async (reviewData) => {
+    await delay(500);
+    initializeStorage();
+
+    const reviews = getFromStorage(REVIEWS_KEY);
+    const newReview = {
+        id: reviews.length > 0 ? Math.max(...reviews.map(r => r.id)) + 1 : 1,
+        hostelId: reviewData.hostelId,
+        studentName: reviewData.studentName || 'Anonymous User',
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+        createdAt: new Date().toISOString(),
+        ownerResponse: null
+    };
+
+    reviews.push(newReview);
+    saveToStorage(REVIEWS_KEY, reviews);
+
+    return { success: true, data: newReview };
+};
+
 export const respondToReview = async (reviewId, response) => {
     await delay(500);
     initializeStorage();

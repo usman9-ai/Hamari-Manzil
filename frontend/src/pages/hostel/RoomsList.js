@@ -188,58 +188,82 @@ const RoomsList = () => {
             </div>
 
             {/* Filters */}
-            <Card className="mb-4">
+            <Card className="mb-4 shadow-sm" style={{ borderRadius: '12px', border: 'none' }}>
                 <CardContent className="p-4">
-                    <div className="row g-3">
+                    <div className="row g-3 align-items-center">
                         <div className="col-md-3">
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Search by room number or hostel..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-search text-muted"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    className="form-control border-start-0"
+                                    placeholder="Search rooms..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                />
+                            </div>
                         </div>
                         <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={filterHostelId}
-                                onChange={(e) => setFilterHostelId(e.target.value)}
-                            >
-                                <option value="">All Hostels</option>
-                                {hostels.map((hostel) => (
-                                    <option key={hostel.id} value={hostel.id}>
-                                        {hostel.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-home text-muted"></i>
+                                </span>
+                                <select
+                                    className="form-select border-start-0"
+                                    value={filterHostelId}
+                                    onChange={(e) => setFilterHostelId(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                >
+                                    <option value="">All Hostels</option>
+                                    {hostels.map((hostel) => (
+                                        <option key={hostel.id} value={hostel.id}>
+                                            {hostel.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="col-md-2">
-                            <select
-                                className="form-select"
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="shared">Shared</option>
-                                <option value="single">Single</option>
-                            </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-bed text-muted"></i>
+                                </span>
+                                <select
+                                    className="form-select border-start-0"
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="shared">Shared</option>
+                                    <option value="single">Single</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="col-md-2">
-                            <select
-                                className="form-select"
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                            >
-                                <option value="">All Status</option>
-                                <option value="available">Available</option>
-                                <option value="occupied">Occupied</option>
-                                <option value="maintenance">Maintenance</option>
-                            </select>
+                            <div className="input-group">
+                                <span className="input-group-text bg-white">
+                                    <i className="fas fa-info-circle text-muted"></i>
+                                </span>
+                                <select
+                                    className="form-select border-start-0"
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    style={{ borderLeft: 'none' }}
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="available">Available</option>
+                                    <option value="occupied">Occupied</option>
+                                    <option value="maintenance">Maintenance</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="col-md-2">
                             <button
-                                className="btn btn-outline-secondary w-100"
+                                className="btn btn-outline-primary w-100"
                                 onClick={() => {
                                     setSearchTerm('');
                                     setFilterType('');
@@ -247,6 +271,7 @@ const RoomsList = () => {
                                     setFilterHostelId('');
                                     navigate('/hostel/rooms');
                                 }}
+                                style={{ borderRadius: '8px', fontWeight: '600' }}
                             >
                                 <i className="fas fa-redo me-2"></i>
                                 Reset
