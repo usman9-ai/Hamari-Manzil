@@ -10,6 +10,9 @@ import Notifications from './pages/student/Notifications';
 import Reviews from './pages/student/Reviews';
 import Profile from './pages/student/Profile';
 import Wishlist from './pages/student/Wishlist';
+import ForgotPassword from './pages/ForgotPassword';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import './index.css'
@@ -34,6 +37,9 @@ function App() {
         <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicy /></PublicRoute>} />
+        <Route path="/terms-conditions" element={<PublicRoute><TermsConditions /></PublicRoute>} />
 
         {/* Student Routes */}
         <Route path="/student/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

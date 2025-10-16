@@ -1,335 +1,222 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import TopHeader from "../../components/TopHeader";
 import HostelCard from "../../components/HostelCard";
-import { hostels, notifications, userProfile } from "../../data/hostels";
+import { dummyHostels, hostelFacilitiesOptions } from "../../services/hostelDummyData";
+import { userProfile, notifications } from "../../data/hostels";
 
 const HostelSearch = () => {
-  const [user] = useState(userProfile);
-  const [searchParams] = useSearchParams();
-  const [wishlist, setWishlist] = useState([]);
-  const [filteredHostels, setFilteredHostels] = useState(hostels);
   const [filters, setFilters] = useState({
     location: "",
+    gender: "",
+    facilities: [],
     minPrice: "",
     maxPrice: "",
-    roomType: "",
-    amenities: [],
     minRating: 0,
   });
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // ===== Notification Counter =====
-  const getUnreadNotifications = () =>
-    notifications.filter((n) => !n.read).length;
+  const [filteredHostels, setFilteredHostels] = useState(dummyHostels);
+  const [wishlist, setWishlist] = useState([]);
+  const unreadNotifications = notifications.filter((n) => !n.read).length;
+  const userWithNotifications = { ...userProfile, unreadNotifications };
 
-  const userWithStats = {
-    ...user,
-    unreadNotifications: getUnreadNotifications(),
-  };
-
-  // ===== Dropdown lists =====
-  const allAmenities = [
-    "Wi-Fi",
-    "Parking",
-    "Laundry",
-    "Mess",
-    "Security",
-    "Air Conditioning",
-    "Attached Bathroom",
-  ];
-
-  const allRoomTypes = ["Single", "Double", "Triple", "Shared"];
-
-  // ===== Load city from search params =====
-  useEffect(() => {
-    const location = searchParams.get("location") || "";
-    setFilters((prev) => ({ ...prev, location }));
-  }, [searchParams]);
-
-  // ===== Handlers =====
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleAmenityToggle = (amenity) => {
-    setFilters((prev) => ({
-      ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter((a) => a !== amenity)
-        : [...prev.amenities, amenity],
-    }));
-  };
+  // Mobile sidebar
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false); 
 
   const applyFilters = () => {
-    const results = hostels.filter((hostel) => {
+    const results = dummyHostels.filter((hostel) => {
       const matchesLocation = filters.location
         ? hostel.city.toLowerCase().includes(filters.location.toLowerCase())
         : true;
-      const matchesPrice =
-        (!filters.minPrice || hostel.price >= filters.minPrice) &&
-        (!filters.maxPrice || hostel.price <= filters.maxPrice);
-      const matchesRoomType = filters.roomType
-        ? hostel.roomType === filters.roomType
+      const matchesGender = filters.gender
+        ? hostel.gender === filters.gender
         : true;
-      const matchesAmenities = filters.amenities.every((a) =>
-        hostel.amenities.includes(a)
-      );
-      const matchesRating = hostel.rating >= filters.minRating;
+
+      let minPrice = 0;
+      let maxPrice = Infinity;
+      if (filters.minPrice) minPrice = Number(filters.minPrice);
+      if (filters.maxPrice) maxPrice = Number(filters.maxPrice) || Infinity;
+
+      const matchesPrice = hostel.price >= minPrice && hostel.price <= maxPrice;
+      const matchesFacilities =
+        filters.facilities.length > 0
+          ? filters.facilities.every((f) => hostel.facilities.includes(f))
+          : true;
+
+      const minRating = Number(filters.minRating) || 0;
+      const matchesRating = hostel.rating >= minRating;
 
       return (
         matchesLocation &&
+        matchesGender &&
         matchesPrice &&
-        matchesRoomType &&
-        matchesAmenities &&
+        matchesFacilities &&
         matchesRating
       );
     });
 
     setFilteredHostels(results);
-    setMobileFiltersOpen(false);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFilters({ ...filters, [name]: value });
+  };
+
+  const handleFacilityChange = (facility) => {
+    setFilters((prev) => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter((f) => f !== facility)
+        : [...prev.facilities, facility],
+    }));
   };
 
   const handleAddToWishlist = (hostelId) => {
-    setWishlist((prev) => [...prev, hostelId]);
+    if (!wishlist.includes(hostelId)) {
+      setWishlist([...wishlist, hostelId]);
+    }
   };
 
   const handleRemoveFromWishlist = (hostelId) => {
-    setWishlist((prev) => prev.filter((id) => id !== hostelId));
+    setWishlist(wishlist.filter((id) => id !== hostelId));
   };
 
   return (
-    <div className="d-flex flex-column flex-lg-row bg-light min-vh-100">
-      {/* ===== Sidebar (Desktop) ===== */}
-      
-        <Sidebar user={userWithStats} />
+    <div className="d-flex flex-column flex-lg-row min-vh-100">
+      <Sidebar
+        user={userWithNotifications}
+        isMobileOpen={mobileSidebarOpen}
+        toggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+      />
 
-      {/* ===== Main Section ===== */}
-      <div className="flex-grow-1">
-        {/* ===== Header ===== */}
-        <TopHeader user={userWithStats} />
+      <main className="flex-grow-1">
+        <TopHeader
+          user={userWithNotifications}
+          onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          title="Hostel Search"
+        />
 
-        <div className="container my-4">
-          {/* ===== Mobile Filter Button ===== */}
-          <div className="d-lg-none mb-3">
+        <div className="container py-4">
+          <div className="d-flex justify-content-between align-items-center mb-3 d-lg-none">
+            {/* Mobile Filter Toggle Button */}
             <button
-              className="btn btn-outline-primary w-100"
-              onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+              className="btn btn-outline-primary"
+              onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
             >
-              <i className="fas fa-filter me-2"></i>
-              {mobileFiltersOpen ? "Hide Filters" : "Show Filters"}
+              {mobileFilterOpen ? "Hide Filters" : "Show Filters"}
             </button>
           </div>
 
-          {/* ===== Mobile Filters ===== */}
-          {mobileFiltersOpen && (
-            <div className="d-lg-none mb-4">
-              <div className="card border-0 shadow-sm p-3">
-                <div className="row g-3">
-                  {/* City */}
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">City</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Enter city name"
-                      value={filters.location}
-                      onChange={(e) =>
-                        handleFilterChange("location", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  {/* Price */}
-                  <div className="col-6">
-                    <label className="form-label fw-semibold">Min Price</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={filters.minPrice}
-                      onChange={(e) =>
-                        handleFilterChange("minPrice", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label fw-semibold">Max Price</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={filters.maxPrice}
-                      onChange={(e) =>
-                        handleFilterChange("maxPrice", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  {/* Room Type */}
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">Room Type</label>
-                    <select
-                      className="form-select"
-                      value={filters.roomType}
-                      onChange={(e) =>
-                        handleFilterChange("roomType", e.target.value)
-                      }
-                    >
-                      <option value="">All Types</option>
-                      {allRoomTypes.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">
-                      Minimum Rating
-                    </label>
-                    <select
-                      className="form-select"
-                      value={filters.minRating}
-                      onChange={(e) =>
-                        handleFilterChange("minRating", +e.target.value)
-                      }
-                    >
-                      <option value={0}>Any</option>
-                      <option value={3}>3+ Stars</option>
-                      <option value={4}>4+ Stars</option>
-                      <option value={4.5}>4.5+ Stars</option>
-                    </select>
-                  </div>
-
-                  {/* Amenities */}
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">Amenities</label>
-                    <div
-                      style={{ maxHeight: "150px", overflowY: "auto" }}
-                    >
-                      {allAmenities.map((amenity) => (
-                        <div key={amenity} className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            checked={filters.amenities.includes(amenity)}
-                            onChange={() => handleAmenityToggle(amenity)}
-                          />
-                          <label className="form-check-label">
-                            {amenity}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="col-12 text-end">
-                    <button
-                      className="btn btn-primary mt-2 px-4"
-                      onClick={applyFilters}
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="row">
-            {/* Sidebar Filters (Desktop) */}
-            <div className="col-lg-3 d-none d-lg-block">
-              <div className="card border-0 shadow-sm p-3">
-                <h5 className="fw-bold mb-3">Filters</h5>
+            {/* Filters Section */}
+            <div
+              className={`col-12 mb-4 mb-md-0 col-md-3 ${
+                mobileFilterOpen ? "d-block" : "d-none d-md-block"
+              }`}
+            >
+              <div className="card p-3 shadow-sm">
+                <h5>Filters</h5>
 
-                <label className="form-label fw-semibold">City</label>
-                <input
-                  type="text"
-                  className="form-control mb-3"
-                  placeholder="Enter city name"
-                  value={filters.location}
-                  onChange={(e) =>
-                    handleFilterChange("location", e.target.value)
-                  }
-                />
-
-                <label className="form-label fw-semibold">Price Range</label>
-                <div className="d-flex gap-2 mb-3">
+                <div className="mb-3">
+                  <label className="form-label">City</label>
                   <input
-                    type="number"
+                    type="text"
+                    name="location"
+                    value={filters.location}
+                    onChange={handleChange}
                     className="form-control"
-                    placeholder="Min"
-                    value={filters.minPrice}
-                    onChange={(e) =>
-                      handleFilterChange("minPrice", e.target.value)
-                    }
-                  />
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="Max"
-                    value={filters.maxPrice}
-                    onChange={(e) =>
-                      handleFilterChange("maxPrice", e.target.value)
-                    }
+                    placeholder="Enter city name"
                   />
                 </div>
 
-                <label className="form-label fw-semibold">Room Type</label>
-                <select
-                  className="form-select mb-3"
-                  value={filters.roomType}
-                  onChange={(e) =>
-                    handleFilterChange("roomType", e.target.value)
-                  }
-                >
-                  <option value="">All Types</option>
-                  {allRoomTypes.map((type) => (
-                    <option key={type}>{type}</option>
-                  ))}
-                </select>
-
-                <label className="form-label fw-semibold">Rating</label>
-                <select
-                  className="form-select mb-3"
-                  value={filters.minRating}
-                  onChange={(e) =>
-                    handleFilterChange("minRating", +e.target.value)
-                  }
-                >
-                  <option value={0}>Any</option>
-                  <option value={3}>3+ Stars</option>
-                  <option value={4}>4+ Stars</option>
-                  <option value={4.5}>4.5+ Stars</option>
-                </select>
-
-                <label className="form-label fw-semibold">Amenities</label>
-                <div style={{ maxHeight: "150px", overflowY: "auto" }}>
-                  {allAmenities.map((amenity) => (
-                    <div key={amenity} className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={filters.amenities.includes(amenity)}
-                        onChange={() => handleAmenityToggle(amenity)}
-                      />
-                      <label className="form-check-label">{amenity}</label>
-                    </div>
-                  ))}
+                <div className="mb-3">
+                  <label className="form-label">Gender</label>
+                  <select
+                    name="gender"
+                    value={filters.gender}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="">All</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
                 </div>
 
-                <button className="btn btn-primary w-100 mt-3" onClick={applyFilters}>
-                  Apply Filters
-                </button>
+                <div className="mb-3">
+                  <label className="form-label">Price Range (PKR)</label>
+                  <select
+                    name="priceRange"
+                    value={`${filters.minPrice}-${filters.maxPrice}`}
+                    onChange={(e) => {
+                      const [min, max] = e.target.value.split("-");
+                      setFilters({
+                        ...filters,
+                        minPrice: min,
+                        maxPrice: max || Infinity,
+                      });
+                    }}
+                    className="form-select"
+                  >
+                    <option value="-">All</option>
+                    <option value="0-10000">Below 10,000</option>
+                    <option value="10000-20000">10,000 - 20,000</option>
+                    <option value="20000-30000">20,000 - 30,000</option>
+                    <option value="30000-50000">30,000 - 50,000</option>
+                    <option value="50000-">Above 50,000</option>
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Minimum Rating</label>
+                  <select
+                    name="minRating"
+                    value={filters.minRating}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="">All</option>
+                    <option value="1">1 and above</option>
+                    <option value="2">2 and above</option>
+                    <option value="3">3 and above</option>
+                    <option value="4">4 and above</option>
+                    <option value="4.5">4.5 and above</option>
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Facilities</label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {hostelFacilitiesOptions.map((facility) => (
+                      <button
+                        key={facility}
+                        className={`btn btn-sm ${
+                          filters.facilities.includes(facility)
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                        }`}
+                        onClick={() => handleFacilityChange(facility)}
+                      >
+                        {facility}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Hostel Results */}
-            <div className="col-lg-9">
-              {filteredHostels.length > 0 ? (
-                <div className="row row-cols-1 row-cols-md-2 g-4 justify-content-center">
-                  {filteredHostels.map((hostel) => (
-                    <div key={hostel.id} className="d-flex align-items-stretch">
+            {/* Hostels List */}
+            <div className="col-12 col-md-9">
+              <div className="row g-3">
+                {filteredHostels.length > 0 ? (
+                  filteredHostels.map((hostel) => (
+                    <div className="col-12 col-sm-6 col-lg-4" key={hostel.id}>
                       <HostelCard
                         hostel={hostel}
                         isInWishlist={wishlist.includes(hostel.id)}
@@ -337,17 +224,17 @@ const HostelSearch = () => {
                         onRemoveFromWishlist={handleRemoveFromWishlist}
                       />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-5">
-                  <h5 className="text-muted">No hostels found</h5>
-                </div>
-              )}
+                  ))
+                ) : (
+                  <p className="text-center text-muted mt-4">
+                    No hostels found with the selected filters.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

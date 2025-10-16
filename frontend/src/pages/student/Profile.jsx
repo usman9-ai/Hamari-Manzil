@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import TopHeader from '../../components/TopHeader';
-import { userProfile } from '../../data/hostels';
+import { userProfile, notifications } from '../../data/hostels';
 import Avatar from 'boring-avatars';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(userProfile);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -20,29 +22,14 @@ const Profile = () => {
     gender: user.gender
   });
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-const [passwordData, setPasswordData] = useState({
-  current: '',
-  new: '',
-  confirm: ''
-});
+  const getUnreadNotifications = () =>
+    notifications.filter((notification) => !notification.read).length;
 
-const handlePasswordChangeInput = (e) => {
-  const { name, value } = e.target;
-  setPasswordData(prev => ({ ...prev, [name]: value }));
-};
-
-const handleSavePassword = () => {
-  if (passwordData.new !== passwordData.confirm) {
-    alert("New password and confirmation do not match!");
-    return;
-  }
-  
-  alert("Password changed successfully!");
-  setShowPasswordModal(false);
-  setPasswordData({ current: '', new: '', confirm: '' });
-};
-
+  const userWithStats = {
+    ...user,
+    unreadNotifications: getUnreadNotifications(),
+    notifications,
+  };
 
   const handleChangePhoto = () => {
   const colorsSets = [
@@ -85,13 +72,11 @@ const handleSavePassword = () => {
     setIsEditing(false);
   };
 
-  const handleChangePassword = () => console.log('Change password clicked');
-
   return (
     <div className="d-flex flex-column flex-md-row min-vh-100">
       {/* Sidebar */}
       <Sidebar
-        user={user}
+        user={userWithStats}
         collapsed={sidebarCollapsed}
         isMobileOpen={mobileSidebarOpen}
         toggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -101,7 +86,7 @@ const handleSavePassword = () => {
       <main className="flex-grow-1" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
         {/* Top Header */}
         <TopHeader
-          user={user}
+          user={userWithStats}
           onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
         />
 
@@ -237,7 +222,7 @@ const handleSavePassword = () => {
                         <button 
                           className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center" 
                           style={{ height: '60px' }}
-                          onClick={() => setShowPasswordModal(true)}
+                          onClick={() => navigate('/forgot-password')} // Redirect to Forgot Password page
                         >
                           <i className="fas fa-key me-2"></i>Change Password
                         </button>
@@ -274,38 +259,6 @@ const handleSavePassword = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Change Password Modal */}
-                  {showPasswordModal && (
-                    <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                      <div className="modal-dialog">
-                        <div className="modal-content">
-                          <div className="modal-header">
-                            <h5 className="modal-title">Change Password</h5>
-                            <button type="button" className="btn-close" onClick={() => setShowPasswordModal(false)}></button>
-                          </div>
-                          <div className="modal-body">
-                            <div className="mb-3">
-                              <label className="form-label">Current Password</label>
-                              <input type="password" className="form-control" name="current" value={passwordData.current} onChange={handlePasswordChangeInput} />
-                            </div>
-                            <div className="mb-3">
-                              <label className="form-label">New Password</label>
-                              <input type="password" className="form-control" name="new" value={passwordData.new} onChange={handlePasswordChangeInput} />
-                            </div>
-                            <div className="mb-3">
-                              <label className="form-label">Confirm New Password</label>
-                              <input type="password" className="form-control" name="confirm" value={passwordData.confirm} onChange={handlePasswordChangeInput} />
-                            </div>
-                          </div>
-                          <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setShowPasswordModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleSavePassword}>Save Changes</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 

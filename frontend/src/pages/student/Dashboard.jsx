@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import TopHeader from '../../components/TopHeader';
 import HostelCard from '../../components/HostelCard';
-import { hostels, notifications, userProfile } from '../../data/hostels';
+import { dummyHostels } from '../../services/hostelDummyData';
+import { userProfile, notifications } from '../../data/hostels';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js'; 
 
 const Dashboard = () => {
   const [user, setUser] = useState(userProfile);
@@ -12,18 +15,28 @@ const Dashboard = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
-    setRecommendedHostels(hostels.slice(0, 6));
+    setRecommendedHostels(dummyHostels.slice(0, 6));
   }, []);
 
-  const handleAddToWishlist = (hostelId) => {
-    if (!wishlist.includes(hostelId)) setWishlist([...wishlist, hostelId]);
+  useEffect(() => {
+    const carousels = document.querySelectorAll('.carousel');
+    carousels.forEach((carousel) => {
+      new bootstrap.Carousel(carousel, {
+        interval: 3000,
+        ride: 'carousel',
+      });
+    });
+  }, [recommendedHostels]);
+
+  // Wishlist Management
+ const handleAddToWishlist = (hostelId) => { 
+  if (!wishlist.includes(hostelId)) setWishlist([...wishlist, hostelId]); 
+}; 
+  const handleRemoveFromWishlist = (hostelId) => { 
+    setWishlist(wishlist.filter((id) => id !== hostelId)); 
   };
 
-  const handleRemoveFromWishlist = (hostelId) => {
-    setWishlist(wishlist.filter((id) => id !== hostelId));
-  };
-
-
+  // Calculate unread notifications
   const getUnreadNotifications = () =>
     notifications.filter((notification) => !notification.read).length;
 
@@ -32,7 +45,7 @@ const Dashboard = () => {
     unreadNotifications: getUnreadNotifications(),
   };
 
-
+  // Stat Card Component
   const StatCard = ({ stat }) => {
     const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 992);
 
@@ -76,7 +89,10 @@ const Dashboard = () => {
       />
 
       {/* Main Content */}
-      <main className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <main
+        className="flex-grow-1"
+        style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}
+      >
         <TopHeader
           user={userWithStats}
           onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -88,10 +104,12 @@ const Dashboard = () => {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
               <div className="mb-2 mb-md-0">
                 <h1 className="fw-bold text-primary h4">
-                  Welcome back, <span className="text-gradient">{user.firstName}!</span>
+                  Welcome back,{' '}
+                  <span className="text-gradient">{user.firstName}!</span>
                 </h1>
                 <p className="text-muted mb-0">
-                  Ready for your next adventure? Here's what's happening with your bookings and recommendations.
+                  Ready for your next adventure? Here's what's happening with
+                  your bookings and recommendations.
                 </p>
               </div>
               <Link
@@ -107,14 +125,29 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div className="row g-3 mb-4">
             {[
-              { title: 'Total Reviews', value: user.totalReviews, icon: 'star', bg: 'success' },
-              { title: 'Wishlist Items', value: wishlist.length, icon: 'heart', bg: 'warning' },
-              { title: 'Notifications', value: userWithStats.unreadNotifications, icon: 'bell', bg: 'info' },
-              
+              {
+                title: 'Total Reviews',
+                value: user.totalReviews,
+                icon: 'star',
+                bg: 'success',
+              },
+              {
+                title: 'Wishlist Items',
+                value: wishlist.length,
+                icon: 'heart',
+                bg: 'warning',
+              },
+              {
+                title: 'Notifications',
+                value: userWithStats.unreadNotifications,
+                icon: 'bell',
+                bg: 'info',
+              },
             ].map((stat, idx) => (
               <StatCard key={idx} stat={stat} />
             ))}
           </div>
+
           {/* Recommended Hostels */}
           <div className="mb-4">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">

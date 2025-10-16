@@ -72,7 +72,7 @@ const WishlistCard = ({ hostel, onRemoveFromWishlist, addedDate }) => {
         </div>
       </div>
 
-      <div className="card-body">
+      <div className="card-body d-flex flex-column flex-grow-1">
         <h5 className="card-title fw-bold mb-2">{hostel.name}</h5>
         <p className="card-text text-muted small mb-2">
           {hostel.description || 'A comfortable stay with modern amenities.'}
@@ -106,8 +106,10 @@ const WishlistCard = ({ hostel, onRemoveFromWishlist, addedDate }) => {
           Added on {formatDate(addedDate)}
         </small>
 
+        <div className="flex-grow-1"></div>
+
         {/* Price and Action */}
-        <div className="d-flex justify-content-between align-items-center mt-2">
+        <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
           <div>
             <span className="h5 text-primary fw-bold mb-0">
               PKR {hostel.price.toLocaleString()}

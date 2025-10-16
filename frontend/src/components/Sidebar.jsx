@@ -26,6 +26,8 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
   const bottomNavItems = [
     { id: 'settings', label: 'Settings', icon: 'fas fa-cog', path: '/student/settings' },
     { id: 'help', label: 'Help & Support', icon: 'fas fa-question-circle', path: '/student/help' },
+    { id: 'privacy', label: 'Privacy Policy', icon: 'fas fa-shield-alt', path: '/privacy-policy' },
+    { id: 'terms', label: 'Terms & Conditions', icon: 'fas fa-file-contract', path: '/terms-conditions' },
     { id: 'logout', label: 'Logout', icon: 'fas fa-sign-out-alt', action: 'logout' },
   ];
 
@@ -159,13 +161,15 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
 
         {/* User Profile */}
         {!isCollapsed && user && (
-          <div className="user-profile p-3 border-bottom text-center text-md-start d-md-flex">
+          <div className="user-profile p-3 border-bottom text-center">
+            <div className='mb-2'>
             <Avatar
-              size={32}
+              size={40}
               name={user?.firstName || 'User'}
               variant="bauhaus"
               colors={['#4F46E5', '#6366F1', '#A5B4FC', '#EEF2FF', '#312E81']}
             />
+            </div>
             <div>
               <h6 className="mb-0 fw-medium">
                 {user.firstName} {user.lastName}
@@ -216,33 +220,62 @@ const Sidebar = ({ user, toggleSidebar, collapsed = false }) => {
 
         {/* Bottom Nav */}
         <div className="sidebar-bottom-nav border-top py-3">
-          {bottomNavItems.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item w-100 border-0 bg-transparent d-flex align-items-center ${
-                item.action === 'logout' ? 'text-danger' : 'text-muted'
-              }`}
-              onClick={() => (item.action === 'logout' ? handleLogout() : setIsMobileOpen(false))}
-              title={isCollapsed ? item.label : ''}
-              style={{
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
-                gap: isCollapsed ? '0' : '0.75rem',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              <i
-                className={`${item.icon}`}
+                  {bottomNavItems.map((item) => {
+                    if (item.action === 'logout') {
+              return (
+                <button
+                  key={item.id}
+                  className="nav-item w-100 border-0 bg-transparent d-flex align-items-center text-danger"
+                  onClick={handleLogout}
+                  title={isCollapsed ? item.label : ''}
+                  style={{
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                    gap: isCollapsed ? '0' : '0.75rem',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <i
+                    className={item.icon}
+                    style={{
+                      fontSize: isCollapsed ? '1.25rem' : '1rem',
+                      marginRight: isCollapsed ? '0' : '0.75rem',
+                      minWidth: isCollapsed ? 'auto' : '20px',
+                      textAlign: 'center',
+                    }}
+                  ></i>
+                  {!isCollapsed && <span>{item.label}</span>}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className="nav-item w-100 d-flex align-items-center text-muted text-decoration-none"
+                onClick={() => setIsMobileOpen(false)}
+                title={isCollapsed ? item.label : ''}
                 style={{
-                  fontSize: isCollapsed ? '1.25rem' : '1rem',
-                  marginRight: isCollapsed ? '0' : '0.75rem',
-                  minWidth: isCollapsed ? 'auto' : '20px',
-                  textAlign: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
+                  padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                  gap: isCollapsed ? '0' : '0.75rem',
+                  transition: 'all 0.3s ease',
                 }}
-              ></i>
-              {!isCollapsed && <span>{item.label}</span>}
-            </button>
-          ))}
+              >
+                <i
+                  className={item.icon}
+                  style={{
+                    fontSize: isCollapsed ? '1.25rem' : '1rem',
+                    marginRight: isCollapsed ? '0' : '0.75rem',
+                    minWidth: isCollapsed ? 'auto' : '20px',
+                    textAlign: 'center',
+                  }}
+                ></i>
+                {!isCollapsed && <span>{item.label}</span>}
+              </Link>
+            );
+          })}
         </div>
 
         {isCollapsed && user && (
