@@ -676,6 +676,14 @@ const HostelDetails = () => {
                     </div>
                 </div>
             )}
+            {/* Footer */}
+            <footer className="bg-white border-top py-4 mt-5">
+                <div className="container">
+                    <div className="text-center text-muted">
+                        <p className="mb-0">© 2024 Hamari Manzil. All rights reserved.</p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 };

@@ -190,14 +190,7 @@ const BrowseHostels = () => {
                             <i className="fas fa-map-marker-alt me-2"></i>
                             {userLocation ? userLocation.city : 'Set Location'}
                         </button>
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => navigate('/hostel/login')}
-                        >
-                            <i className="fas fa-building me-2"></i>
-                            <span className="d-none d-md-inline">Register Your Hostel</span>
-                            <span className="d-md-none">Register</span>
-                        </button>
+                       
                     </div>
                 </div>
             </nav>

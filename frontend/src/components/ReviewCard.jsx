@@ -34,11 +34,6 @@ const ReviewCard = ({ review, onHelpful, onReport }) => {
             <h6 className="mb-0 fw-bold">{review.userName}</h6>
             <small className="text-muted">
               {formatDate(review.date)}
-              {review.verified && (
-                <span className="ms-2 text-success">
-                  <i className="fas fa-check-circle"></i> Verified
-                </span>
-              )}
             </small>
           </div>
         </div>

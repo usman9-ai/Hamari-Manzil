@@ -4,7 +4,7 @@ import HomePage from './pages/HomePage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/student/Dashboard';
-import HostelSearch from './pages/student/HostelSearch';
+import BrowseHostels from './pages/student/BrowseHostels';
 import HostelDetails from './pages/student/HostelDetails';
 import Notifications from './pages/student/Notifications';
 import Reviews from './pages/student/Reviews';
@@ -43,8 +43,8 @@ function App() {
 
         {/* Student Routes */}
         <Route path="/student/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/student/search" element={<ProtectedRoute><HostelSearch /></ProtectedRoute>} />
-        <Route path="/student/hostel-details/:id" element={<ProtectedRoute><HostelDetails /></ProtectedRoute>} />
+        <Route path="/student/search" element={<ProtectedRoute><BrowseHostels /></ProtectedRoute>} />
+        <Route path="/hostel-details/:id" element={<ProtectedRoute><HostelDetails /></ProtectedRoute>} />
         <Route path="/student/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/student/reviews" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
         <Route path="/student/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

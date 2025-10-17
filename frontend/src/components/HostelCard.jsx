@@ -11,7 +11,7 @@ const HostelCard = ({
 
   // Navigate to details
   const handleViewDetails = () => {
-    navigate(`/student/hostel-details/${hostel.id}`);
+    navigate(`/hostel-details/${hostel.id}`);
   };
 
   
