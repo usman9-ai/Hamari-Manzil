@@ -1,5 +1,4 @@
 import React from 'react';
-import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
 
 // FooterNav component: Displays footer with brand info, quick links, and social icons
 const FooterNav = () => {
@@ -46,34 +45,11 @@ const FooterNav = () => {
           {/* ----- Social Media ----- */}
           <div className="col-12 col-md-4 text-md-start text-center">
             <h6 className="fw-bold mb-2">Follow Us</h6>
-
-              <div className="d-flex justify-content-center justify-content-md-start gap-3 mt-2">
-              {[FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn].map((Icon, index) => (
-                <a
-                  key={index}
-                  href="#"
-                  className="text-primary fs-5 d-flex align-items-center justify-content-center border-rounded-circle"
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    transition: 'all 0.3s ease',
-                    borderColor: '#0d6efd',
-                  }}
-                  
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.15)';
-                    e.currentTarget.style.backgroundColor = '#0d6efd';
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#0d6efd';
-                  }}
-                >
-                  <Icon />
-                </a>
-              ))}
+            <div className="d-flex justify-content-center justify-content-md-start gap-3 mt-2">
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-facebook-f"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-instagram"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-twitter"></i></a>
+              <a href="#" className="text-primary fs-5 hover-icon"><i className="fab fa-linkedin-in"></i></a>
             </div>
           </div>
         </div>
